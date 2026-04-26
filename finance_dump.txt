@@ -1,0 +1,7920 @@
+# Code dump of: C:\A-Projects gng\Finance Simulation
+================================================================================
+
+## FILE: LICENSE
+--------------------------------------------------------------------------------
+Copyright 2026 Hardik Borse
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+## FILE: README.md
+--------------------------------------------------------------------------------
+# FINANCE SIMULATION BACKEND
+
+This repository hosts a production-grade financial simulation backend built using Go and Clean Architecture principles.
+The system simulates real-world portfolio management, transactions, expenses, market data ingestion, and financial analytics.
+
+## The project demonstrates:-
+1) Clean Hexagonal Architecture with strict domain separation
+2) RESTful API design using the Chi router
+3) Global middleware for logging, recovery, timeouts, and request tracing
+4) Redis cache-aside strategy for market data and dashboards
+5) PostgreSQL persistence using pgx and connection pooling
+6) Repository pattern for isolated, testable data access
+7) External stock market API integration via RapidAPI
+8) Efficient Go concurrency using goroutines and contexts
+9) Safe graceful shutdown using OS signals and channels
+10) Production-ready backend practices focused on scalability and reliability
+
+## Table of Contents:-
+- [Architecture Diagram](#Architecture-Diagram)
+- [Core Design Principles](#core-design-principles)
+- [Technology Stack](#technology-stack)
+- [System Components](#system-components)
+- [API Design & Routes](#api-design--routes)
+- [Getting Started](#getting-started)
+- [Author](#author)
+- [License](#license)
+
+## Architecture Diagram:-
+Below is a high-level overview of the system architecture:
+
+<img width="2121" height="2991" alt="final" src="https://github.com/user-attachments/assets/bf1f3663-235a-4354-837d-5e92998cfde7" />
+
+## Core Design Principles:-
+1) Separation of Concerns – Each layer has a well-defined role
+2) Dependency Injection – Services depend on interfaces, not implementations
+3) Thin Controllers – Handlers only translate HTTP to business calls
+4) Explicit Caching – Redis used intentionally, not implicitly
+5) Fail-Safe Design – Panic recovery and graceful shutdown
+6) Scalable by Default – Designed for horizontal scaling
+
+## Technology Stack
+1) GO (chi router)
+2) PostgreSQL
+3) Redis
+4) RapidAPI (stock market data)
+5) Bruno (endpoint testing)
+
+## System Components:-
+
+### Authentication & User Management
+1) User registration and login
+2) JWT-based authentication
+3) Admin and user role separation
+
+### Portfolio Management
+1) Track user holdings
+2) Calculate portfolio value using live stock prices
+3) Cached stock price lookups for performance
+
+### Transactions
+1) Buy / Sell stock operations
+2) Portfolio updates
+3) Transaction persistence
+4) Automatic net worth recalculation
+
+### Expenses & Planning
+1) Track daily expenses
+2) Planned (future) expenses
+3) Integrated into net worth calculations
+
+### Net Worth Engine
+1) Aggregates portfolio value
+2) Subtracts expenses
+3) Produces real-time net worth
+
+### Market & Heatmap
+1) Live market data via RapidAPI
+2) Sector/market heatmap support
+3) Redis-backed caching layer
+
+### Dashboard
+1) Portfolio summary
+2) Net worth
+3) Expenses
+4) Cached dashboard responses for fast loading
+
+## API Design & Routes
+This are some of the features of this backend:-
+### 1. Create User
+POST /users
+```json
+Request Body (JSON)
+{
+  "email": "john.doe@gmail.com",
+  "full_name": "John Doe",
+  "avatar_url": "https://avatar.com/john.png",
+  "google_id": "google-oauth-id-12345"
+}
+
+Success Response (201)
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "email": "john.doe@gmail.com",
+  "full_name": "John Doe",
+  "avatar_url": "https://avatar.com/john.png",
+  "google_id": "google-oauth-id-12345",
+  "fake_balance": 1000,
+  "is_admin": false,
+  "created_at": "2025-01-01T10:00:00Z",
+  "updated_at": "2025-01-01T10:00:00Z"
+}
+```
+
+### 2. Get Stock Price according to symbol
+GET /market/price/GE
+```json
+Success Response (201)
+{
+  "meta": {
+    "version": "v1.0",
+    "status": 200,
+    "copywrite": "https://steadyapi.com"
+  },
+  "body": {
+    "symbol": "GE",
+    "companyName": "GE Aerospace Common Stock",
+    "marketStatus": "Pre-Market",
+    "primaryData": {
+      "lastSalePrice": "$316.45",
+      "netChange": "+2.01",
+      "percentageChange": "+0.64%",
+      "isRealTime": true,
+      "volume": "8,477"
+    }
+  }
+}
+```
+
+### 3. Buy / Sale Transactions
+POST /transactions/buy
+
+```json
+Request Body (JSON)
+{
+  "user_id": "77705829-b3e3-4846-8c7a-f4353fff483a",
+  "symbol": "DAL",
+  "quantity": "2"
+}
+
+Success Response (201)
+{
+  "status": "buy order executed successfully"
+}
+```
+POST /transactions/sale
+
+```json
+Request Body (JSON)
+{
+  "user_id": "77705829-b3e3-4846-8c7a-f4353fff483a",
+  "symbol": "DAL",
+  "quantity": "1"
+}
+
+Success Response (201)
+{
+  "status": "sale order executed successfully"
+}
+```
+### 4. Portfolio
+POST /portfolio/{userID}
+
+```json
+[
+  {
+    "id": "916e2a35-0676-47ed-8af3-8b91a3ad8951",
+    "user_id": "a522415e-953a-4e96-8677-458b63fbda76",
+    "stock_symbol": "AAPL",
+    "quantity": 3,
+    "avg_price": 270.8,
+    "created_at": "2026-01-05T19:42:40.641228Z",
+    "updated_at": "2026-01-06T18:36:34.976848Z"
+  },
+  {
+    "id": "aa9d9ea7-6249-42c7-b03e-7955f1030a80",
+    "user_id": "a522415e-953a-4e96-8677-458b63fbda76",
+    "stock_symbol": "NFLX",
+    "quantity": 2,
+    "avg_price": 91.76,
+    "created_at": "2026-01-06T18:37:44.838716Z",
+    "updated_at": "2026-01-06T18:37:44.838716Z"
+  },
+  {
+    "id": "d1ab6d32-a704-4dff-97af-851ff5c78f90",
+    "user_id": "a522415e-953a-4e96-8677-458b63fbda76",
+    "stock_symbol": "BABA",
+    "quantity": 20,
+    "avg_price": 154.6,
+    "created_at": "2026-01-06T18:38:24.630994Z",
+    "updated_at": "2026-01-06T18:38:24.630994Z"
+  },
+  {
+    "id": "715e2ba8-dd16-48b0-bf4d-686fd4c7ed52",
+    "user_id": "a522415e-953a-4e96-8677-458b63fbda76",
+    "stock_symbol": "GE",
+    "quantity": 20,
+    "avg_price": 324.43,
+    "created_at": "2026-01-06T18:38:55.546611Z",
+    "updated_at": "2026-01-06T18:38:55.546611Z"
+  }
+]
+```
+### 5. Expense
+POST users/{userID}/expense
+
+```json
+Request Body (JSON)
+{
+  "amount": "100.75",
+  "category": "Internet bill",
+  "description": "payed through google pay",
+  "date": "2026-01-06T00:00:00Z"
+}
+
+Success Response (201)
+{
+  "message": "expense added successfully"
+}
+```
+GET users/{userID}/expenses
+
+```json
+[
+  {
+    "id": "e0080e0a-13e9-4466-ad95-a9b32f49309a",
+    "user_id": "a522415e-953a-4e96-8677-458b63fbda76",
+    "amount": "250.75",
+    "category": "Food",
+    "description": "Lunch at cafe",
+    "date": "2026-01-06T00:00:00Z",
+    "created_at": "2026-01-06T19:18:59.774112+05:30",
+    "updated_at": "2026-01-06T19:18:59.774112+05:30"
+  },
+  {
+    "id": "2bb3dcd1-c1fa-4a9e-86e6-174701cef372",
+    "user_id": "a522415e-953a-4e96-8677-458b63fbda76",
+    "amount": "1950.75",
+    "category": "study material",
+    "description": "for clg shi",
+    "date": "2026-01-06T00:00:00Z",
+    "created_at": "2026-01-06T19:20:17.711489+05:30",
+    "updated_at": "2026-01-06T19:20:17.711489+05:30"
+  },
+  {
+    "id": "f8f4a1e7-d2ad-44ab-90ad-7dbbeaaa12a5",
+    "user_id": "a522415e-953a-4e96-8677-458b63fbda76",
+    "amount": "10.75",
+    "category": "candy",
+    "description": "from shop",
+    "date": "2026-01-06T00:00:00Z",
+    "created_at": "2026-01-06T19:20:58.222585+05:30",
+    "updated_at": "2026-01-06T19:20:58.222585+05:30"
+  },
+  {
+    "id": "23bad74d-cef5-4ff1-8e3b-1789f68dbce6",
+    "user_id": "a522415e-953a-4e96-8677-458b63fbda76",
+    "amount": "100.75",
+    "category": "Internet bill",
+    "description": "payed through google pay",
+    "date": "2026-01-06T00:00:00Z",
+    "created_at": "2026-01-09T19:20:05.023969+05:30",
+    "updated_at": "2026-01-09T19:20:05.023969+05:30"
+  }
+]
+```
+## Getting Started
+Prerequisites
+1) Go 1.21+
+2) PostgreSQL
+3) Redis
+4) Git
+
+Clone the Repository
+```
+git clone https://github.com/yourusername/finance-simulation.git
+cd finance-simulation/backend
+```
+Run the Server
+```
+go mod tidy
+go run cmd/main.go
+```
+## Author
+**Hardik Borse** | [LinkedIn](https://www.linkedin.com/in/hardik-borse-aa7729324/) | [Email](mailto:borsehardik@gmail.com)
+
+## License
+This project is licensed under the **Apache License 2.0**.
+
+
+## FILE: finance_dump.txt
+--------------------------------------------------------------------------------
+# Code dump of: C:\A-Projects gng\Finance Simulation
+================================================================================
+
+## FILE: LICENSE
+--------------------------------------------------------------------------------
+Copyright 2026 Hardik Borse
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+## FILE: README.md
+--------------------------------------------------------------------------------
+# FINANCE SIMULATION BACKEND
+
+This repository hosts a production-grade financial simulation backend built using Go and Clean Architecture principles.
+The system simulates real-world portfolio management, transactions, expenses, market data ingestion, and financial analytics.
+
+## The project demonstrates:-
+1) Clean Hexagonal Architecture with strict domain separation
+2) RESTful API design using the Chi router
+3) Global middleware for logging, recovery, timeouts, and request tracing
+4) Redis cache-aside strategy for market data and dashboards
+5) PostgreSQL persistence using pgx and connection pooling
+6) Repository pattern for isolated, testable data access
+7) External stock market API integration via RapidAPI
+8) Efficient Go concurrency using goroutines and contexts
+9) Safe graceful shutdown using OS signals and channels
+10) Production-ready backend practices focused on scalability and reliability
+
+## Table of Contents:-
+- [Architecture Diagram](#Architecture-Diagram)
+- [Core Design Principles](#core-design-principles)
+- [Technology Stack](#technology-stack)
+- [System Components](#system-components)
+- [API Design & Routes](#api-design--routes)
+- [Getting Started](#getting-started)
+- [Author](#author)
+- [License](#license)
+
+## Architecture Diagram:-
+Below is a high-level overview of the system architecture:
+
+<img width="2121" height="2991" alt="final" src="https://github.com/user-attachments/assets/bf1f3663-235a-4354-837d-5e92998cfde7" />
+
+## Core Design Principles:-
+1) Separation of Concerns – Each layer has a well-defined role
+2) Dependency Injection – Services depend on interfaces, not implementations
+3) Thin Controllers – Handlers only translate HTTP to business calls
+4) Explicit Caching – Redis used intentionally, not implicitly
+5) Fail-Safe Design – Panic recovery and graceful shutdown
+6) Scalable by Default – Designed for horizontal scaling
+
+## Technology Stack
+1) GO (chi router)
+2) PostgreSQL
+3) Redis
+4) RapidAPI (stock market data)
+5) Bruno (endpoint testing)
+
+## System Components:-
+
+### Authentication & User Management
+1) User registration and login
+2) JWT-based authentication
+3) Admin and user role separation
+
+### Portfolio Management
+1) Track user holdings
+2) Calculate portfolio value using live stock prices
+3) Cached stock price lookups for performance
+
+### Transactions
+1) Buy / Sell stock operations
+2) Portfolio updates
+3) Transaction persistence
+4) Automatic net worth recalculation
+
+### Expenses & Planning
+1) Track daily expenses
+2) Planned (future) expenses
+3) Integrated into net worth calculations
+
+### Net Worth Engine
+1) Aggregates portfolio value
+2) Subtracts expenses
+3) Produces real-time net worth
+
+### Market & Heatmap
+1) Live market data via RapidAPI
+2) Sector/market heatmap support
+3) Redis-backed caching layer
+
+### Dashboard
+1) Portfolio summary
+2) Net worth
+3) Expenses
+4) Cached dashboard responses for fast loading
+
+## API Design & Routes
+This are some of the features of this backend:-
+### 1. Create User
+POST /users
+```json
+Request Body (JSON)
+{
+  "email": "john.doe@gmail.com",
+  "full_name": "John Doe",
+  "avatar_url": "https://avatar.com/john.png",
+  "google_id": "google-oauth-id-12345"
+}
+
+Success Response (201)
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "email": "john.doe@gmail.com",
+  "full_name": "John Doe",
+  "avatar_url": "https://avatar.com/john.png",
+  "google_id": "google-oauth-id-12345",
+  "fake_balance": 1000,
+  "is_admin": false,
+  "created_at": "2025-01-01T10:00:00Z",
+  "updated_at": "2025-01-01T10:00:00Z"
+}
+```
+
+### 2. Get Stock Price according to symbol
+GET /market/price/GE
+```json
+Success Response (201)
+{
+  "meta": {
+    "version": "v1.0",
+    "status": 200,
+    "copywrite": "https://steadyapi.com"
+  },
+  "body": {
+    "symbol": "GE",
+    "companyName": "GE Aerospace Common Stock",
+    "marketStatus": "Pre-Market",
+    "primaryData": {
+      "lastSalePrice": "$316.45",
+      "netChange": "+2.01",
+      "percentageChange": "+0.64%",
+      "isRealTime": true,
+      "volume": "8,477"
+    }
+  }
+}
+```
+
+### 3. Buy / Sale Transactions
+POST /transactions/buy
+
+```json
+Request Body (JSON)
+{
+  "user_id": "77705829-b3e3-4846-8c7a-f4353fff483a",
+  "symbol": "DAL",
+  "quantity": "2"
+}
+
+Success Response (201)
+{
+  "status": "buy order executed successfully"
+}
+```
+POST /transactions/sale
+
+```json
+Request Body (JSON)
+{
+  "user_id": "77705829-b3e3-4846-8c7a-f4353fff483a",
+  "symbol": "DAL",
+  "quantity": "1"
+}
+
+Success Response (201)
+{
+  "status": "sale order executed successfully"
+}
+```
+### 4. Portfolio
+POST /portfolio/{userID}
+
+```json
+[
+  {
+    "id": "916e2a35-0676-47ed-8af3-8b91a3ad8951",
+    "user_id": "a522415e-953a-4e96-8677-458b63fbda76",
+    "stock_symbol": "AAPL",
+    "quantity": 3,
+    "avg_price": 270.8,
+    "created_at": "2026-01-05T19:42:40.641228Z",
+    "updated_at": "2026-01-06T18:36:34.976848Z"
+  },
+  {
+    "id": "aa9d9ea7-6249-42c7-b03e-7955f1030a80",
+    "user_id": "a522415e-953a-4e96-8677-458b63fbda76",
+    "stock_symbol": "NFLX",
+    "quantity": 2,
+    "avg_price": 91.76,
+    "created_at": "2026-01-06T18:37:44.838716Z",
+    "updated_at": "2026-01-06T18:37:44.838716Z"
+  },
+  {
+    "id": "d1ab6d32-a704-4dff-97af-851ff5c78f90",
+    "user_id": "a522415e-953a-4e96-8677-458b63fbda76",
+    "stock_symbol": "BABA",
+    "quantity": 20,
+    "avg_price": 154.6,
+    "created_at": "2026-01-06T18:38:24.630994Z",
+    "updated_at": "2026-01-06T18:38:24.630994Z"
+  },
+  {
+    "id": "715e2ba8-dd16-48b0-bf4d-686fd4c7ed52",
+    "user_id": "a522415e-953a-4e96-8677-458b63fbda76",
+    "stock_symbol": "GE",
+    "quantity": 20,
+    "avg_price": 324.43,
+    "created_at": "2026-01-06T18:38:55.546611Z",
+    "updated_at": "2026-01-06T18:38:55.546611Z"
+  }
+]
+```
+### 5. Expense
+POST users/{userID}/expense
+
+```json
+Request Body (JSON)
+{
+  "amount": "100.75",
+  "category": "Internet bill",
+  "description": "payed through google pay",
+  "date": "2026-01-06T00:00:00Z"
+}
+
+Success Response (201)
+{
+  "message": "expense added successfully"
+}
+```
+GET users/{userID}/expenses
+
+```json
+[
+  {
+    "id": "e0080e0a-13e9-4466-ad95-a9b32f49309a",
+    "user_id": "a522415e-953a-4e96-8677-458b63fbda76",
+    "amount": "250.75",
+    "category": "Food",
+    "description": "Lunch at cafe",
+    "date": "2026-01-06T00:00:00Z",
+    "created_at": "2026-01-06T19:18:59.774112+05:30",
+    "updated_at": "2026-01-06T19:18:59.774112+05:30"
+  },
+  {
+    "id": "2bb3dcd1-c1fa-4a9e-86e6-174701cef372",
+    "user_id": "a522415e-953a-4e96-8677-458b63fbda76",
+    "amount": "1950.75",
+    "category": "study material",
+    "description": "for clg shi",
+    "date": "2026-01-06T00:00:00Z",
+    "created_at": "2026-01-06T19:20:17.711489+05:30",
+    "updated_at": "2026-01-06T19:20:17.711489+05:30"
+  },
+  {
+    "id": "f8f4a1e7-d2ad-44ab-90ad-7dbbeaaa12a5",
+    "user_id": "a522415e-953a-4e96-8677-458b63fbda76",
+    "amount": "10.75",
+    "category": "candy",
+    "description": "from shop",
+    "date": "2026-01-06T00:00:00Z",
+    "created_at": "2026-01-06T19:20:58.222585+05:30",
+    "updated_at": "2026-01-06T19:20:58.222585+05:30"
+  },
+  {
+    "id": "23bad74d-cef5-4ff1-8e3b-1789f68dbce6",
+    "user_id": "a522415e-953a-4e96-8677-458b63fbda76",
+    "amount": "100.75",
+    "category": "Internet bill",
+    "description": "payed through google pay",
+    "date": "2026-01-06T00:00:00Z",
+    "created_at": "2026-01-09T19:20:05.023969+05:30",
+    "updated_at": "2026-01-09T19:20:05.023969+05:30"
+  }
+]
+```
+## Getting Started
+Prerequisites
+1) Go 1.21+
+2) PostgreSQL
+3) Redis
+4) Git
+
+Clone the Repository
+```
+git clone https://github.com/yourusername/finance-simulation.git
+cd finance-simulation/backend
+```
+Run the Server
+```
+go mod tidy
+go run cmd/main.go
+```
+## Author
+**Hardik Borse** | [LinkedIn](https://www.linkedin.com/in/hardik-borse-aa7729324/) | [Email](mailto:borsehardik@gmail.com)
+
+## License
+This project is licensed under the **Apache License 2.0**.
+
+
+## FILE: postgres.sql
+--------------------------------------------------------------------------------
+select * from planned_expenses;
+
+select * from users;
+
+select * from portfolios;
+
+select * from transactions;
+
+select * from planned_expenses;
+
+select * from expenses;
+
+select * from networth;
+
+SELECT table_name
+FROM information_schema.tables
+WHERE table_type = 'BASE TABLE' AND table_schema NOT IN ('pg_catalog', 'information_schema');
+
+
+## FILE: FinanceAPI\bruno.json
+--------------------------------------------------------------------------------
+{
+  "version": "1",
+  "name": "FinanceAPI",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}
+
+## FILE: backend\cmd\.env
+--------------------------------------------------------------------------------
+APP_PORT=8080
+
+DATABASE_URL=postgres://postgres:root@localhost:5432/Finance_db?sslmode=disable
+
+GOOGLE_CLIENT_ID=230330457774-bpd729119de1oml3udlv7nehj3n7gcmj.apps.googleusercontent.com
+
+# JWT SECRET (NOT Google secret)
+JWT_SECRET=my-super-secret-jwt-key-change-this
+
+REDIS_HOST=localhost:6379
+REDIS_PASSWORD=root
+REDIS_DB=0
+
+# ==============================
+# Stock / Market APIs
+# ==============================
+
+# If using RapidAPI (Yahoo Finance, etc.)
+RAPIDAPI_KEY=cb2f09b4aemsh6039232dc8a20d3p185aadjsn247dcae2f892
+RAPIDAPI_HOST=yahoo-finance15.p.rapidapi.com
+
+# ==============================
+# Logging & Limits (optional)
+# ==============================
+LOG_LEVEL=debug
+REQUEST_TIMEOUT_SECONDS=10
+
+# Indian Stock Exchange API
+INDIAN_RAPIDAPI_KEY=cb2f09b4aemsh6039232dc8a20d3p185aadjsn247dcae2f892
+INDIAN_RAPIDAPI_HOST=indian-stock-exchange-api2.p.rapidapi.com
+
+## FILE: backend\cmd\.gitignore
+--------------------------------------------------------------------------------
+.env
+
+## FILE: backend\cmd\main.go
+--------------------------------------------------------------------------------
+package main
+
+import (
+	"context"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/cache"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/config"
+	handler "github.com/the-onewho-knocks/finance-Simulation/backend/internal/handlers"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/repositories/pgx"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/routes"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/services"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/stockapi"
+)
+
+func main() {
+
+	cfg := config.LoadConfig()
+
+	dbPool, err := pgxpool.New(context.Background(), cfg.DatabaseURL)
+	if err != nil {
+		log.Fatal("failed to connect to database:", err)
+	}
+	defer dbPool.Close()
+
+	cache.InitializeRedis(cfg)
+
+	stockCache := cache.NewStockCache()
+	marketCache := cache.NewMarketCache(cache.RedisClient)
+	heatmapCache := cache.NewHeatMapCache(cache.RedisClient)
+
+	rapidApiClient := stockapi.NewRapidApiClient(
+		cfg.RapidAPIKey,
+		cfg.RapidAPIHost,
+	)
+
+	userRepo := pgx.NewUserRepository(dbPool)
+	adminRepo := pgx.NewAdminRepository(dbPool)
+	portfolioRepo := pgx.NewPortfolioRepository(dbPool)
+	transactionRepo := pgx.NewTransactionRepository(dbPool)
+	expenseRepo := pgx.NewExpenseRepository(dbPool)
+	plannedExpenseRepo := pgx.NewPlannedExpenseRepository(dbPool)
+	networthRepo := pgx.NewNetworthRepository(dbPool)
+
+	userService := services.NewUserService(userRepo)
+	adminService := services.NewAdminService(adminRepo)
+	authService := services.NewAuthService(userService)
+
+	expenseService := services.NewExpenseService(expenseRepo)
+	plannedExpenseService := services.NewPlannedExpenseService(plannedExpenseRepo)
+
+	portfolioService := services.NewPortfolioService(
+		portfolioRepo,
+		stockCache,
+	)
+
+	networthService := services.NewNetworthService(
+		networthRepo,
+		userRepo,
+		portfolioService,
+		expenseService,
+	)
+
+	transactionService := services.NewTransactionService(
+		userRepo,
+		portfolioRepo,
+		transactionRepo,
+		stockCache,
+		networthService,
+	)
+
+	marketService := services.NewMarketService(
+		cfg.RapidAPIKey,
+		marketCache,
+		stockCache,
+	)
+
+	heatmapService := services.NewHeatmapService(
+		rapidApiClient,
+		heatmapCache,
+	)
+
+	dashboardCache := cache.NewDashboardCache()
+
+	dashboardService := services.NewDashboardService(
+		networthService,
+		portfolioService,
+		expenseService,
+		dashboardCache,
+	)
+	h := &routes.Handlers{
+		Auth:           handler.NewAuthHandler(authService),
+		User:           handler.NewUserHandler(userService),
+		Admin:          handler.NewAdminHandler(adminService),
+		Portfolio:      handler.NewPortfolioHandler(portfolioService),
+		Transaction:    handler.NewTransactionHandler(transactionService),
+		Expense:        handler.NewExpenseHandler(expenseService),
+		PlannedExpense: handler.NewPlannedExpenseHandler(plannedExpenseService),
+		Networth:       handler.NewNetworthHandler(networthService),
+		Market:         handler.NewMarketHandler(marketService),
+		Heatmap:        handler.NewHeatmapHandler(heatmapService),
+		Dashboard:      handler.NewDashboardHandler(dashboardService),
+	}
+
+	r := chi.NewRouter()
+
+	r.Use(middleware.RequestID)
+	r.Use(middleware.RealIP)
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+	r.Use(middleware.Timeout(60 * time.Second))
+
+	r.Get("/health", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	})
+
+	r.Mount("/", routes.RegisterRoutes(h))
+
+	srv := &http.Server{
+		Addr:    ":" + cfg.AppPort,
+		Handler: r,
+	}
+
+	go func() {
+		log.Println("Server running on port", cfg.AppPort)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal(err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt)
+	<-quit
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	srv.Shutdown(ctx)
+}
+
+## FILE: backend\docs\api-sec.md
+--------------------------------------------------------------------------------
+
+
+## FILE: backend\docs\architecture.md
+--------------------------------------------------------------------------------
+The System file architechure of the project is as follows
+Finance Simulator/
+├── cmd/server/main.go
+├── internal/
+│   ├── config/
+│   │   ├── config.go
+│   │   └── redis.go
+│   ├── cache/
+│   │   ├── redis_client.go
+│   │   ├── stock_cache.go
+│   │   ├── heatmap_cache.go
+│   │   └── dashboard_cache.go
+│   ├── middleware/
+│   │   ├── auth.go
+│   │   └── admin.go
+│   ├── stockapi/
+│   │   ├── client.go
+│   │   ├── yahoo.go
+│   │   └── mock.go
+│   ├── models/
+│   │   ├── user.go
+│   │   ├── expense.go
+│   │   ├── planned_expense.go
+│   │   ├── portfolio.go
+│   │   ├── transaction.go
+│   │   ├── networth.go
+│   │   ├── heatmap.go
+│   │   └── admin.go
+│   ├── repositories/
+│   │   ├── interfaces/
+│   │   │   ├── user_repository.go
+│   │   │   ├── expense_repository.go
+│   │   │   ├── planned_expense_repository.go
+│   │   │   ├── portfolio_repository.go
+│   │   │   ├── transaction_repository.go
+│   │   │   ├── networth_repository.go
+│   │   │   ├── admin_repository.go
+│   │   │   └── base.go
+│   │   ├── pgx/
+│   │   │   ├── user_repo.go
+│   │   │   ├── expense_repo.go
+│   │   │   ├── planned_expense_repo.go
+│   │   │   ├── portfolio_repo.go
+│   │   │   ├── transaction_repo.go
+│   │   │   ├── networth_repo.go
+│   │   │   └── admin_repo.go
+│   │   └── mock/
+│   ├── services/
+│   │   ├── user_service.go
+│   │   ├── auth_service.go
+│   │   ├── expense_service.go
+│   │   ├── planned_expense_service.go
+│   │   ├── portfolio_service.go
+│   │   ├── transaction_service.go
+│   │   ├── networth_service.go
+│   │   ├── market_service.go
+│   │   ├── heatmap_service.go
+│   │   ├── dashboard_service.go
+│   │   └── admin_service.go
+│   ├── handlers/
+│   │   ├── auth_handler.go
+│   │   ├── user_handler.go
+│   │   ├── expense_handler.go
+│   │   ├── planned_expense_handler.go
+│   │   ├── portfolio_handler.go
+│   │   ├── transaction_handler.go
+│   │   ├── networth_handler.go
+│   │   ├── market_handler.go
+│   │   ├── heatmap_handler.go
+│   │   ├── dashboard_handler.go
+│   │   └── admin_handler.go
+│   └── routes/
+│       └── routes.go
+├── pkg/utils/
+│   ├── hash.go
+│   └── validator.go
+├── go.mod
+├── go.sum
+└── .env
+
+## FILE: backend\docs\dev-setup.md
+--------------------------------------------------------------------------------
+
+
+## FILE: backend\docs\docs.go
+--------------------------------------------------------------------------------
+// Package docs Code generated by swaggo/swag. DO NOT EDIT
+package docs
+
+import "github.com/swaggo/swag"
+
+const docTemplate = `{
+    "schemes": {{ marshal .Schemes }},
+    "swagger": "2.0",
+    "info": {
+        "description": "{{escape .Description}}",
+        "title": "{{.Title}}",
+        "contact": {},
+        "version": "{{.Version}}"
+    },
+    "host": "{{.Host}}",
+    "basePath": "{{.BasePath}}",
+    "paths": {}
+}`
+
+// SwaggerInfo holds exported Swagger Info so clients can modify it
+var SwaggerInfo = &swag.Spec{
+	Version:          "1.0",
+	Host:             "localhost:8080",
+	BasePath:         "/",
+	Schemes:          []string{},
+	Title:            "Finance Simulation API",
+	Description:      "Backend API for Finance Stock Market Simulator",
+	InfoInstanceName: "swagger",
+	SwaggerTemplate:  docTemplate,
+	LeftDelim:        "{{",
+	RightDelim:       "}}",
+}
+
+func init() {
+	swag.Register(SwaggerInfo.InstanceName(), SwaggerInfo)
+}
+
+## FILE: backend\docs\runbook.md
+--------------------------------------------------------------------------------
+
+
+## FILE: backend\docs\swagger.json
+--------------------------------------------------------------------------------
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "Backend API for Finance Stock Market Simulator",
+        "title": "Finance Simulation API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/",
+    "paths": {}
+}
+
+## FILE: backend\docs\swagger.yaml
+--------------------------------------------------------------------------------
+basePath: /
+host: localhost:8080
+info:
+  contact: {}
+  description: Backend API for Finance Stock Market Simulator
+  title: Finance Simulation API
+  version: "1.0"
+paths: {}
+swagger: "2.0"
+
+## FILE: backend\internal\cache\dashboard_cache.go
+--------------------------------------------------------------------------------
+package cache
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/redis/go-redis/v9"
+)
+
+type DashboardCache struct {
+	client *redis.Client
+}
+
+func NewDashboardCache() *DashboardCache {
+	return &DashboardCache{
+		client: RedisClient,
+	}
+}
+
+// ================= NET WORTH =================
+
+func (c *DashboardCache) SetNetworth(ctx context.Context, userID string, value float64) error {
+	key := fmt.Sprintf("dashboard:%s:networth", userID)
+	return c.client.Set(ctx, key, value, time.Minute).Err()
+}
+
+func (c *DashboardCache) GetNetworth(ctx context.Context, userID string) (float64, bool) {
+	key := fmt.Sprintf("dashboard:%s:networth", userID)
+	val, err := c.client.Get(ctx, key).Float64()
+	if err == redis.Nil {
+		return 0, false
+	}
+	return val, err == nil
+}
+
+// ================= PORTFOLIO =================
+
+func (c *DashboardCache) SetPortfolioValue(ctx context.Context, userID string, value float64) error {
+	key := fmt.Sprintf("dashboard:%s:portfolio", userID)
+	return c.client.Set(ctx, key, value, time.Minute).Err()
+}
+
+func (c *DashboardCache) GetPortfolioValue(ctx context.Context, userID string) (float64, bool) {
+	key := fmt.Sprintf("dashboard:%s:portfolio", userID)
+	val, err := c.client.Get(ctx, key).Float64()
+	if err == redis.Nil {
+		return 0, false
+	}
+	return val, err == nil
+}
+
+// ================= DAILY EXPENSE =================
+
+func (c *DashboardCache) SetDailyExpense(ctx context.Context, userID string, value float64) error {
+	key := fmt.Sprintf("dashboard:%s:daily_expense", userID)
+	return c.client.Set(ctx, key, value, 2*time.Minute).Err()
+}
+
+func (c *DashboardCache) GetDailyExpense(ctx context.Context, userID string) (float64, bool) {
+	key := fmt.Sprintf("dashboard:%s:daily_expense", userID)
+	val, err := c.client.Get(ctx, key).Float64()
+	if err == redis.Nil {
+		return 0, false
+	}
+	return val, err == nil
+}
+
+## FILE: backend\internal\cache\heatmap_cache.go
+--------------------------------------------------------------------------------
+package cache
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/redis/go-redis/v9"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/models"
+)
+
+type HeatmapCache struct {
+	client *redis.Client
+	ttl    time.Duration
+}
+
+func NewHeatMapCache(
+	client *redis.Client,
+) *HeatmapCache {
+	return &HeatmapCache{
+		client: client,
+		ttl:    5 * time.Second,
+	}
+}
+
+func (c *HeatmapCache) Get(
+	ctx context.Context,
+	page int,
+	result *[]models.HeatmapBlock,
+) (bool, error) {
+	key := fmt.Sprintf("heatmap:market:page:%d", page)
+	return GetJSON(ctx, c.client, key, result)
+}
+
+func (c *HeatmapCache) Set(
+	ctx context.Context,
+	page int,
+	data []models.HeatmapBlock,
+) error {
+	key := fmt.Sprintf("heatmap:market:page:%d", page)
+	return SetJSON(ctx, c.client, key, data, c.ttl)
+}
+
+## FILE: backend\internal\cache\history_cache.go
+--------------------------------------------------------------------------------
+package cache
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"time"
+
+	"github.com/redis/go-redis/v9"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/stockapi"
+)
+
+const (
+	historyTTL      = 10 * time.Minute
+	historyStatsTTL = 30 * time.Minute
+)
+
+type HistoryCache struct{}
+
+func NewHistoryCache() *HistoryCache {
+	return &HistoryCache{}
+}
+
+func (c *HistoryCache) historyKey(stock, period string) string {
+	return fmt.Sprintf("history:price:%s:%s", stock, period)
+}
+
+func (c *HistoryCache) statsKey(stock, stats string) string {
+	return fmt.Sprintf("history:stats:%s:%s", stock, stats)
+}
+
+func (c *HistoryCache) GetHistory(
+	ctx context.Context,
+	stock string,
+	period string,
+) ([]stockapi.HistoricalPrice, bool) {
+
+	val, err := RedisClient.Get(ctx, c.historyKey(stock, period)).Result()
+	if err != nil {
+		if err == redis.Nil {
+			return nil, false // cache miss
+		}
+		return nil, false
+	}
+
+	var data []stockapi.HistoricalPrice
+	if err := json.Unmarshal([]byte(val), &data); err != nil {
+		return nil, false
+	}
+
+	return data, true
+}
+
+func (c *HistoryCache) SetHistory(
+	ctx context.Context,
+	stock string,
+	period string,
+	data []stockapi.HistoricalPrice,
+) error {
+
+	bytes, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	return RedisClient.Set(
+		ctx,
+		c.historyKey(stock, period),
+		bytes,
+		historyTTL,
+	).Err()
+}
+
+func (c *HistoryCache) GetHistoryStats(
+	ctx context.Context,
+	stock string,
+	stats string,
+) (stockapi.HistoricalStats, bool) {
+
+	val, err := RedisClient.Get(ctx, c.statsKey(stock, stats)).Result()
+	if err != nil {
+		if err == redis.Nil {
+			return stockapi.HistoricalStats{}, false // cache miss
+		}
+		return stockapi.HistoricalStats{}, false
+	}
+
+	var data stockapi.HistoricalStats
+	if err := json.Unmarshal([]byte(val), &data); err != nil {
+		return stockapi.HistoricalStats{}, false
+	}
+
+	return data, true
+}
+
+func (c *HistoryCache) SetHistoryStats(
+	ctx context.Context,
+	stock string,
+	stats string,
+	data stockapi.HistoricalStats,
+) error {
+
+	bytes, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	return RedisClient.Set(
+		ctx,
+		c.statsKey(stock, stats),
+		bytes,
+		historyStatsTTL,
+	).Err()
+}
+
+## FILE: backend\internal\cache\indicator_cache.go
+--------------------------------------------------------------------------------
+package cache
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"time"
+
+	"github.com/redis/go-redis/v9"
+)
+
+type IndicatorCache struct {
+	client *redis.Client
+	ttl    time.Duration
+}
+
+func NewIndicatorCache(client *redis.Client) *IndicatorCache {
+	return &IndicatorCache{
+		client: client,
+		ttl:    2 * time.Minute,
+	}
+}
+
+func (c *IndicatorCache) key(parts ...any) string {
+	return fmt.Sprintf("indicator:%v", parts)
+}
+
+func (c *IndicatorCache) Get(
+	ctx context.Context,
+	key string,
+	dest any,
+) (bool, error) {
+
+	val, err := c.client.Get(ctx, key).Result()
+	if err == redis.Nil {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+
+	return true, json.Unmarshal([]byte(val), dest)
+}
+
+func (c *IndicatorCache) Set(
+	ctx context.Context,
+	key string,
+	value any,
+) error {
+
+	data, err := json.Marshal(value)
+	if err != nil {
+		return err
+	}
+
+	return c.client.Set(ctx, key, data, c.ttl).Err()
+}
+
+## FILE: backend\internal\cache\json.go
+--------------------------------------------------------------------------------
+package cache
+
+import (
+	"context"
+	"encoding/json"
+	"time"
+
+	"github.com/redis/go-redis/v9"
+)
+
+func SetJSON(
+	ctx context.Context,
+	client *redis.Client,
+	key string,
+	value any,
+	ttl time.Duration,
+) error {
+
+	b, err := json.Marshal(value)
+	if err != nil {
+		return err
+	}
+
+	return client.Set(ctx, key, b, ttl).Err()
+}
+
+func GetJSON(
+	ctx context.Context,
+	client *redis.Client,
+	key string,
+	dest any,
+) (bool, error) {
+
+	val, err := client.Get(ctx, key).Result()
+	if err == redis.Nil {
+		return false, nil
+	}
+	if err != nil {
+		return false, nil
+	}
+
+	return true, json.Unmarshal([]byte(val), dest)
+}
+
+## FILE: backend\internal\cache\market_cache.go
+--------------------------------------------------------------------------------
+package cache
+
+import (
+	"context"
+	"encoding/json"
+	"time"
+
+	"github.com/redis/go-redis/v9"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/stockapi"
+)
+
+type MarketCache struct {
+	rdb *redis.Client
+}
+
+func NewMarketCache(rdb *redis.Client) *MarketCache {
+	return &MarketCache{rdb: rdb}
+}
+
+func (c *MarketCache) Get(ctx context.Context, key string, dest any) bool {
+	val, err := c.rdb.Get(ctx, key).Result()
+	if err != nil {
+		return false
+	}
+
+	_ = json.Unmarshal([]byte(val), dest)
+	return true
+}
+
+func (c *MarketCache) Set(ctx context.Context, key string, data any, ttl time.Duration) {
+	bytes, _ := json.Marshal(data)
+	c.rdb.Set(ctx, key, bytes, ttl)
+}
+
+func (c *MarketCache) GetPrice(
+	ctx context.Context,
+	symbol string,
+) (*stockapi.QuoteResponse, bool) {
+
+	key := "price:" + symbol
+
+	val, err := c.rdb.Get(ctx, key).Result()
+	if err != nil {
+		return nil, false
+	}
+
+	var quote stockapi.QuoteResponse
+
+	_ = json.Unmarshal([]byte(val), &quote)
+	return &quote, true
+}
+
+func (c *MarketCache) SetPrice(
+	ctx context.Context,
+	symbol string,
+	quote *stockapi.QuoteResponse,
+) {
+	key := "price:" + symbol
+	bytes, _ := json.Marshal(quote)
+	c.rdb.Set(ctx, key, bytes, 15*time.Second)
+}
+
+## FILE: backend\internal\cache\redis_client.go
+--------------------------------------------------------------------------------
+package cache
+
+import (
+	"context"
+	"log"
+	"time"
+
+	"github.com/redis/go-redis/v9"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/config"
+)
+
+var RedisClient *redis.Client
+
+func InitializeRedis(cfg *config.Config) {
+	RedisClient = redis.NewClient(&redis.Options{
+		Addr:     cfg.RedisHost,
+		Password: cfg.RedisPassword,
+		DB:       cfg.RedisDB,
+	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	if err := RedisClient.Ping(ctx).Err(); err != nil {
+		log.Fatalf("failed to connect to redis murumai %v", err.Error())
+	}
+
+	log.Println("connected to redis successfully")
+}
+
+## FILE: backend\internal\cache\stock_cache.go
+--------------------------------------------------------------------------------
+package cache
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/redis/go-redis/v9"
+)
+
+type StockCache struct {
+	client *redis.Client
+}
+
+func NewStockCache() *StockCache {
+	return &StockCache{
+		client: RedisClient,
+	}
+}
+
+// setters
+func (c *StockCache) SetPrice(symbol string, price float64) error {
+	ctx := context.Background()
+	key := fmt.Sprintf("stock:%s", symbol)
+	return c.client.HSet(ctx, key, map[string]interface{}{
+		"price":      price,
+		"updated_at": time.Now().UTC().Format(time.RFC3339),
+	}).Err()
+}
+
+func (c *StockCache) SetChange(symbol string, changePercent float64) error {
+	ctx := context.Background()
+	key := fmt.Sprintf("stock:%s", symbol)
+	return c.client.HSet(ctx, key, map[string]interface{}{
+		"change":     changePercent,
+		"updated_at": time.Now().UTC().Format(time.RFC3339),
+	}).Err()
+}
+
+func (c *StockCache) SetStockData(symbol string, price float64, change float64) error {
+	ctx := context.Background()
+	key := fmt.Sprintf("stock:%s", symbol)
+	return c.client.HSet(ctx, key, map[string]interface{}{
+		"price":      price,
+		"change":     change,
+		"updated_at": time.Now().UTC().Format(time.RFC3339),
+	}).Err()
+}
+
+//getters
+
+// this fuckin current stock price which is set
+func (c *StockCache) GetPrice(symbol string) (float64, error) {
+	ctx := context.Background()
+	key := fmt.Sprintf("stock:%s", symbol)
+	return c.client.HGet(ctx, key, "price").Float64()
+}
+
+// this fuckin function fetches the price of change of a stock
+// (for example +1.25 or -0.80) from Redis cache.
+func (c *StockCache) GetChange(symbol string) (float64, error) {
+	ctx := context.Background()
+	key := fmt.Sprintf("stock:%s", symbol)
+	return c.client.HGet(ctx, key, "change").Float64()
+}
+
+func (c *StockCache) GetLastUpdated(symbol string) (string, error) {
+	ctx := context.Background()
+	key := fmt.Sprintf("stock:%s", symbol)
+	return c.client.HGet(ctx, key, "updated_at").Result()
+}
+
+func (c *StockCache) GetStockData(symbol string) (map[string]string, error) {
+	ctx := context.Background()
+	key := fmt.Sprintf("stock:%s", symbol)
+	return c.client.HGetAll(ctx, key).Result()
+}
+
+// bulk operations
+func (c *StockCache) GetMultiple(ctx context.Context, symbols []string) (map[string]map[string]string, error) {
+	pipe := c.client.Pipeline()
+
+	cmds := make(map[string]*redis.MapStringStringCmd, len(symbols))
+
+	for _, symbol := range symbols {
+		key := fmt.Sprintf("stock:%s", symbol)
+		cmds[symbol] = pipe.HGetAll(ctx, key)
+	}
+
+	if _, err := pipe.Exec(ctx); err != nil {
+		return nil, err
+	}
+
+	result := make(map[string]map[string]string, len(symbols))
+
+	for symbol, cmd := range cmds {
+		data, err := cmd.Result()
+		if err == nil && len(data) > 0 {
+			result[symbol] = data
+		}
+	}
+
+	return result, nil
+}
+
+## FILE: backend\internal\config\config.go
+--------------------------------------------------------------------------------
+package config
+
+import (
+	"log"
+	"os"
+	"strconv"
+
+	"github.com/joho/godotenv"
+)
+
+type Config struct {
+	DatabaseURL string
+	AppPort     string
+
+	RedisHost     string
+	RedisPassword string
+	RedisDB       int
+
+	RapidAPIKey  string
+	RapidAPIHost string
+}
+
+func LoadConfig() *Config {
+	// Load environment variables from .env
+	_ = godotenv.Load()
+
+	cfg := &Config{
+		DatabaseURL: getEnv("DATABASE_URL", ""),
+		AppPort:     getEnv("APP_PORT", "8080"),
+	}
+
+	if cfg.DatabaseURL == "" {
+		log.Fatal("DATABASE_URL not found in .env file")
+	}
+
+	// Load Redis configuration
+	cfg.RedisHost = getEnv("REDIS_HOST", "localhost:6379")
+	cfg.RedisPassword = getEnv("REDIS_PASSWORD", "")
+	cfg.RedisDB = parseInt(getEnv("REDIS_DB", "0"))
+
+	cfg.RapidAPIKey = getEnv("RAPIDAPI_KEY", "")
+	cfg.RapidAPIHost = getEnv("RAPIDAPI_HOST", "")
+
+	return cfg
+}
+
+func getEnv(key, fallback string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return fallback
+}
+
+func parseInt(s string) int {
+	v, err := strconv.Atoi(s)
+	if err != nil {
+		return 0
+	}
+	return v
+}
+
+## FILE: backend\internal\config\redis.go
+--------------------------------------------------------------------------------
+package config
+
+import (
+	"strconv"
+)
+
+type RedisConfig struct {
+	Host     string
+	Password string
+	DB       int
+}
+
+func LoadRedisConfig() *RedisConfig {
+	db, err := strconv.Atoi(getEnv("REDIS_DB", "0"))
+	if err != nil {
+		db = 0
+	}
+	return &RedisConfig{
+		Host:     getEnv("REDIS_HOST", "localhost:6379"),
+		Password: getEnv("REDIS_PASSWORD", ""),
+		DB:       db,
+	}
+}
+
+## FILE: backend\internal\handlers\admin_handler.go
+--------------------------------------------------------------------------------
+package handler
+
+import (
+	"net/http"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/services"
+)
+
+type AdminHandler struct {
+	adminService *services.AdminService
+}
+
+func NewAdminHandler(adminService *services.AdminService) *AdminHandler {
+	return &AdminHandler{
+		adminService: adminService,
+	}
+}
+
+// GET /admin/users
+func (h *AdminHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
+	users, err := h.adminService.GetAllUsers(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, users)
+}
+
+// GET /admin/users/{userID}/portfolio
+func (h *AdminHandler) GetUserPortfolio(w http.ResponseWriter, r *http.Request) {
+	userIDParam := chi.URLParam(r, "userID")
+	userID, err := uuid.Parse(userIDParam)
+	if err != nil {
+		http.Error(w, "invalid user id", http.StatusBadRequest)
+		return
+	}
+
+	items, err := h.adminService.GetUserPortfolio(r.Context(), userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, items)
+}
+
+// DELETE /admin/users/{userID}
+func (h *AdminHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+	userIDParam := chi.URLParam(r, "userID")
+	userID, err := uuid.Parse(userIDParam)
+	if err != nil {
+		http.Error(w, "invalid user id", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.adminService.DeleteUser(r.Context(), userID); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{
+		"message": "user deleted successfully",
+	})
+}
+
+## FILE: backend\internal\handlers\auth_handler.go
+--------------------------------------------------------------------------------
+package handler
+
+import (
+	"encoding/json"
+	"net/http"
+
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/services"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/pkg/utils"
+)
+
+type AuthHandler struct {
+	authService *services.AuthService
+}
+
+func NewAuthHandler(authService *services.AuthService) *AuthHandler {
+	return &AuthHandler{authService: authService}
+}
+
+func (h *AuthHandler) GoogleLogin(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		IDToken string `json:"id_token"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request", http.StatusBadRequest)
+		return
+	}
+
+	result, err := h.authService.GoogleLogin(r.Context(), req.IDToken)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	token, err := utils.GenerateToken(
+		result.UserID,
+		result.Email,
+		result.IsAdmin,
+	)
+	if err != nil {
+		http.Error(w, "token error", http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]any{
+		"token": token,
+		"user":  result,
+	})
+}
+
+## FILE: backend\internal\handlers\company_handler.go
+--------------------------------------------------------------------------------
+package handler
+
+import (
+	"net/http"
+
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/services"
+)
+
+type IndianStockHandler struct {
+	service *services.IndianStockService
+}
+
+func NewIndianStockHandler(service *services.IndianStockService) *IndianStockHandler {
+	return &IndianStockHandler{service: service}
+}
+
+// GET /stocks/indian?name=tata steel
+func (h *IndianStockHandler) GetStockByName(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get("name")
+	if name == "" {
+		http.Error(w, "name query param required", http.StatusBadRequest)
+		return
+	}
+
+	raw, err := h.service.GetStockByNameRaw(name)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(raw) //RAW RESPONSE
+}
+
+## FILE: backend\internal\handlers\dashboard_handler.go
+--------------------------------------------------------------------------------
+package handler
+
+import (
+	"net/http"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
+
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/services"
+)
+
+type DashboardHandler struct {
+	dashboardService *services.DashboardService
+}
+
+func NewDashboardHandler(
+	dashboardService *services.DashboardService,
+) *DashboardHandler {
+	return &DashboardHandler{
+		dashboardService: dashboardService,
+	}
+}
+
+type dashboardResponse struct {
+	NetWorth       interface{} `json:"networth"`
+	PortfolioValue string      `json:"portfolio_value"`
+	Expenses       interface{} `json:"expenses"`
+}
+
+func (h *DashboardHandler) GetDashboard(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	userIDParam := chi.URLParam(r, "userID")
+	userID, err := uuid.Parse(userIDParam)
+	if err != nil {
+		http.Error(w, "invalid user id", http.StatusBadRequest)
+		return
+	}
+
+	networth, portfolioValue, expenses, err :=
+		h.dashboardService.AggregateDashboard(r.Context(), userID)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, dashboardResponse{
+		NetWorth:       networth,
+		PortfolioValue: portfolioValue.String(),
+		Expenses:       expenses,
+	})
+}
+
+## FILE: backend\internal\handlers\expense_handler.go
+--------------------------------------------------------------------------------
+package handler
+
+import (
+	"encoding/json"
+	"net/http"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
+
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/services"
+)
+
+type ExpenseHandler struct {
+	expenseService *services.ExpenseService
+}
+
+func NewExpenseHandler(
+	expenseService *services.ExpenseService,
+) *ExpenseHandler {
+	return &ExpenseHandler{
+		expenseService: expenseService,
+	}
+}
+
+// ================= REQUEST DTO =================
+
+type createExpenseRequest struct {
+	Amount      decimal.Decimal `json:"amount"`
+	Category    string          `json:"category"`
+	Description string          `json:"description"`
+	Date        time.Time       `json:"date"` // expects RFC3339 or YYYY-MM-DD
+}
+
+// ================= ADD EXPENSE =================
+
+func (h *ExpenseHandler) AddExpense(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	userIDParam := chi.URLParam(r, "userID")
+	userID, err := uuid.Parse(userIDParam)
+	if err != nil {
+		http.Error(w, "invalid userID", http.StatusBadRequest)
+		return
+	}
+
+	var req createExpenseRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// validation
+	if req.Amount.LessThanOrEqual(decimal.Zero) {
+		http.Error(w, "amount must be greater than zero", http.StatusBadRequest)
+		return
+	}
+	if req.Category == "" {
+		http.Error(w, "category is required", http.StatusBadRequest)
+		return
+	}
+	if req.Date.IsZero() {
+		req.Date = time.Now().UTC()
+	}
+
+	err = h.expenseService.AddExpense(
+		r.Context(),
+		userID,
+		req.Amount,
+		req.Category,
+		req.Description,
+		req.Date,
+	)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, map[string]string{
+		"message": "expense added successfully",
+	})
+}
+
+// ================= LIST EXPENSES =================
+
+func (h *ExpenseHandler) ListExpenses(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	userIDParam := chi.URLParam(r, "userID")
+	userID, err := uuid.Parse(userIDParam)
+	if err != nil {
+		http.Error(w, "invalid userID", http.StatusBadRequest)
+		return
+	}
+
+	expenses, err := h.expenseService.ListExpenses(r.Context(), userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, expenses)
+}
+
+// ================= DELETE EXPENSE =================
+
+func (h *ExpenseHandler) DeleteExpense(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	userIDParam := chi.URLParam(r, "userID")
+	expenseIDParam := chi.URLParam(r, "expenseID")
+
+	userID, err := uuid.Parse(userIDParam)
+	if err != nil {
+		http.Error(w, "invalid userID", http.StatusBadRequest)
+		return
+	}
+
+	expenseID, err := uuid.Parse(expenseIDParam)
+	if err != nil {
+		http.Error(w, "invalid expenseID", http.StatusBadRequest)
+		return
+	}
+
+	err = h.expenseService.DeleteExpense(
+		r.Context(),
+		expenseID,
+		userID,
+	)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{
+		"message": "expense deleted successfully",
+	})
+}
+
+// ================= TOTAL EXPENSES =================
+
+func (h *ExpenseHandler) GetTotalExpenses(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	userIDParam := chi.URLParam(r, "userID")
+	userID, err := uuid.Parse(userIDParam)
+	if err != nil {
+		http.Error(w, "invalid userID", http.StatusBadRequest)
+		return
+	}
+
+	total, err := h.expenseService.GetTotalExpenses(
+		r.Context(),
+		userID,
+	)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{
+		"total_expenses": total.String(),
+	})
+}
+
+## FILE: backend\internal\handlers\heatmap_handler.go
+--------------------------------------------------------------------------------
+package handler
+
+import (
+	"encoding/json"
+	"net/http"
+	"strconv"
+
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/services"
+)
+
+type HeatmapHandler struct {
+	service *services.HeatmapService
+}
+
+func NewHeatmapHandler(service *services.HeatmapService) *HeatmapHandler {
+	return &HeatmapHandler{service: service}
+}
+
+// GET /heatmap/market?page=1
+func (h *HeatmapHandler) GetMarketHeatmap(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	if page == 0 {
+		page = 1
+	}
+
+	data, err := h.service.GetMarketHeatmap(r.Context(), page)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(data)
+}
+
+## FILE: backend\internal\handlers\histroy_handler.go
+--------------------------------------------------------------------------------
+package handler
+
+import (
+	"encoding/json"
+	"net/http"
+
+	"github.com/go-chi/chi/v5"
+
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/services"
+)
+
+type HistoryHandler struct {
+	service *services.HistoryService
+}
+
+func NewHistoryHandler(service *services.HistoryService) *HistoryHandler {
+	return &HistoryHandler{service: service}
+}
+
+/*
+GET /history/{stock}?period=1m
+*/
+func (h *HistoryHandler) GetHistory(w http.ResponseWriter, r *http.Request) {
+	stock := chi.URLParam(r, "stock")
+	period := r.URL.Query().Get("period")
+	if period == "" {
+		period = "1m"
+	}
+
+	data, err := h.service.GetHistoricalPrices(stock, period)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(data)
+}
+
+/*
+GET /history/{stock}/stats?stats=quarter_results
+*/
+func (h *HistoryHandler) GetHistoryStats(w http.ResponseWriter, r *http.Request) {
+	stock := chi.URLParam(r, "stock")
+	stats := r.URL.Query().Get("stats")
+
+	if stats == "" {
+		http.Error(w, "stats query param is required", http.StatusBadRequest)
+		return
+	}
+
+	data, err := h.service.GetHistoricalStats(stock, stats)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(data)
+}
+
+## FILE: backend\internal\handlers\indicator_handler.go
+--------------------------------------------------------------------------------
+package handler
+
+import (
+	"net/http"
+	"strconv"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/services"
+)
+
+type IndicatorHandler struct {
+	service *services.IndicatorService
+}
+
+func NewIndicatorHandler(service *services.IndicatorService) *IndicatorHandler {
+	return &IndicatorHandler{service: service}
+}
+
+func (h *IndicatorHandler) GetSMA(w http.ResponseWriter, r *http.Request) {
+	symbol := chi.URLParam(r, "symbol")
+
+	interval := r.URL.Query().Get("interval")
+	if interval == "" {
+		interval = "5m"
+	}
+
+	period, _ := strconv.Atoi(r.URL.Query().Get("period"))
+	if period == 0 {
+		period = 50
+	}
+
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	if limit == 0 {
+		limit = 50
+	}
+
+	data, err := h.service.GetSMA(
+		r.Context(),
+		symbol,
+		interval,
+		period,
+		limit,
+	)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, data)
+}
+
+func (h *IndicatorHandler) GetRSI(w http.ResponseWriter, r *http.Request) {
+	symbol := chi.URLParam(r, "symbol")
+
+	interval := r.URL.Query().Get("interval")
+	if interval == "" {
+		interval = "5m"
+	}
+
+	period, _ := strconv.Atoi(r.URL.Query().Get("period"))
+	if period == 0 {
+		period = 50
+	}
+
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	if limit == 0 {
+		limit = 50
+	}
+
+	data, err := h.service.GetRSI(
+		r.Context(),
+		symbol,
+		interval,
+		period,
+		limit,
+	)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, data)
+}
+
+// writeError sends a standardized error response
+func writeError(w http.ResponseWriter, status int, message string) {
+	writeJSON(w, status, map[string]string{
+		"error": message,
+	})
+}
+
+## FILE: backend\internal\handlers\market_handler.go
+--------------------------------------------------------------------------------
+package handler
+
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/services"
+)
+
+type MarketHandler struct {
+	service *services.MarketService
+}
+
+func NewMarketHandler(service *services.MarketService) *MarketHandler {
+	return &MarketHandler{service: service}
+}
+
+/* =========================
+   GET PRICE (single symbol)
+========================= */
+
+func (h *MarketHandler) GetPrice(w http.ResponseWriter, r *http.Request) {
+	symbol := chi.URLParam(r, "symbol")
+
+	data, err := h.service.GetPrice(r.Context(), symbol)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(data)
+}
+
+/* =========================
+   GET PRICES (multiple)
+   /market/prices?symbols=AAPL,MSFT
+========================= */
+
+func (h *MarketHandler) GetPrices(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query().Get("symbols")
+	if query == "" {
+		http.Error(w, "symbols query param required", http.StatusBadRequest)
+		return
+	}
+
+	symbols := strings.Split(query, ",")
+	data := h.service.GetPrices(r.Context(), symbols)
+
+	json.NewEncoder(w).Encode(data)
+}
+
+/* =========================
+   PRICE STREAM (SSE-style)
+========================= */
+
+func (h *MarketHandler) PriceStream(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query().Get("symbols")
+	if query == "" {
+		http.Error(w, "symbols query param required", http.StatusBadRequest)
+		return
+	}
+
+	symbols := strings.Split(query, ",")
+
+	// 🔥 REQUIRED HEADERS FOR STREAMING
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "streaming unsupported", http.StatusInternalServerError)
+		return
+	}
+
+	stream := h.service.StartPriceStream(
+		r.Context(),
+		symbols,
+		2*time.Second,
+	)
+
+	for prices := range stream {
+		// SSE format
+		fmt.Fprintf(w, "data: %s\n\n", mustJSON(prices))
+		flusher.Flush()
+	}
+}
+
+/* =========================
+   MARKET NEWS
+========================= */
+
+func (h *MarketHandler) GetMarketNews(w http.ResponseWriter, r *http.Request) {
+	ticker := chi.URLParam(r, "ticker")
+
+	data, err := h.service.GetMarketNews(r.Context(), ticker)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(data)
+}
+
+/* =========================
+   QUOTE (raw quote response)
+========================= */
+
+func (h *MarketHandler) GetQuote(w http.ResponseWriter, r *http.Request) {
+	ticker := chi.URLParam(r, "ticker")
+
+	data, err := h.service.GetQuote(r.Context(), ticker)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(data)
+}
+
+func mustJSON(v any) string {
+	b, _ := json.Marshal(v)
+	return string(b)
+}
+
+## FILE: backend\internal\handlers\networth_handler.go
+--------------------------------------------------------------------------------
+package handler
+
+import (
+	"net/http"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/services"
+)
+
+type NetworthHandler struct {
+	networthService *services.NetworthService
+}
+
+func NewNetworthHandler(
+	networthService *services.NetworthService,
+) *NetworthHandler {
+	return &NetworthHandler{
+		networthService: networthService,
+	}
+}
+
+// POST /users/{userID}/networth/recalculate
+func (h *NetworthHandler) RecalculateNetworth(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	userIDParam := chi.URLParam(r, "userID")
+
+	userID, err := uuid.Parse(userIDParam)
+	if err != nil {
+		http.Error(w, "invalid user id", http.StatusBadRequest)
+		return
+	}
+
+	breakdown, err := h.networthService.RecalculateNetworth(
+		r.Context(),
+		userID,
+	)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, breakdown)
+}
+
+// GET /users/{userID}/networth/latest
+func (h *NetworthHandler) GetLatestNetworth(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	userIDParam := chi.URLParam(r, "userID")
+
+	userID, err := uuid.Parse(userIDParam)
+	if err != nil {
+		http.Error(w, "invalid user id", http.StatusBadRequest)
+		return
+	}
+
+	networth, err := h.networthService.GetLatestNetworth(
+		r.Context(),
+		userID,
+	)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, networth)
+}
+
+// GET /users/{userID}/networth/history
+func (h *NetworthHandler) GetNetworthHistory(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	userIDParam := chi.URLParam(r, "userID")
+
+	userID, err := uuid.Parse(userIDParam)
+	if err != nil {
+		http.Error(w, "invalid user id", http.StatusBadRequest)
+		return
+	}
+
+	history, err := h.networthService.GetNetworthHistory(
+		r.Context(),
+		userID,
+	)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, history)
+}
+
+// GET /users/{userID}/networth/breakdown
+func (h *NetworthHandler) GetNetworthBreakdown(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	userIDParam := chi.URLParam(r, "userID")
+
+	userID, err := uuid.Parse(userIDParam)
+	if err != nil {
+		http.Error(w, "invalid user id", http.StatusBadRequest)
+		return
+	}
+
+	breakdown, err := h.networthService.GetNetworthBreakdown(
+		r.Context(),
+		userID,
+	)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, breakdown)
+}
+
+## FILE: backend\internal\handlers\planned-expense_handler.go
+--------------------------------------------------------------------------------
+package handler
+
+import (
+	"encoding/json"
+	"net/http"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
+
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/services"
+)
+
+// Handler struct
+type PlannedExpenseHandler struct {
+	service *services.PlannedExpenseService
+}
+
+// Constructor
+func NewPlannedExpenseHandler(
+	service *services.PlannedExpenseService,
+) *PlannedExpenseHandler {
+	return &PlannedExpenseHandler{
+		service: service,
+	}
+}
+
+type createPlanRequest struct {
+	Title  string          `json:"title"`
+	Amount decimal.Decimal `json:"amount"`
+	Note   string          `json:"note"`
+	Date   time.Time       `json:"date"`
+}
+
+// POST /users/{userID}/planned-expenses
+func (h *PlannedExpenseHandler) CreatePlan(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	defer r.Body.Close()
+
+	userIDParam := chi.URLParam(r, "userID")
+	userID, err := uuid.Parse(userIDParam)
+	if err != nil {
+		http.Error(w, "invalid user id", http.StatusBadRequest)
+		return
+	}
+
+	var req createPlanRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// basic validation
+	if req.Title == "" || req.Amount.LessThanOrEqual(decimal.Zero) {
+		http.Error(w, "title and valid amount are required", http.StatusBadRequest)
+		return
+	}
+
+	err = h.service.CreatePlan(
+		r.Context(),
+		userID,
+		req.Title,
+		req.Amount,
+		req.Note,
+		req.Date,
+	)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "planned expense created successfully",
+	})
+}
+
+// GET /users/{userID}/planned-expenses
+func (h *PlannedExpenseHandler) GetPlans(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	userIDParam := chi.URLParam(r, "userID")
+	userID, err := uuid.Parse(userIDParam)
+	if err != nil {
+		http.Error(w, "invalid user id", http.StatusBadRequest)
+		return
+	}
+
+	plans, err := h.service.Getplans(r.Context(), userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(plans)
+}
+
+// DELETE /users/{userID}/planned-expenses/{planID}
+func (h *PlannedExpenseHandler) DeletePlan(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	userIDParam := chi.URLParam(r, "userID")
+	planIDParam := chi.URLParam(r, "planID")
+
+	// parse user ID
+	userID, err := uuid.Parse(userIDParam)
+	if err != nil {
+		http.Error(w, "invalid user id", http.StatusBadRequest)
+		return
+	}
+
+	// parse plan ID
+	planID, err := uuid.Parse(planIDParam)
+	if err != nil {
+		http.Error(w, "invalid plan id", http.StatusBadRequest)
+		return
+	}
+
+	// delete plan
+	err = h.service.DeletePlan(
+		r.Context(),
+		userID,
+		planID,
+	)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "planned expense deleted successfully",
+	})
+}
+
+## FILE: backend\internal\handlers\portfolio_handler.go
+--------------------------------------------------------------------------------
+package handler
+
+import (
+	"encoding/json"
+	"net/http"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/models"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/services"
+)
+
+type PortfolioHandler struct {
+	portfolioService *services.PortfolioService
+}
+
+func NewPortfolioHandler(
+	portfolioService *services.PortfolioService,
+) *PortfolioHandler {
+	return &PortfolioHandler{
+		portfolioService: portfolioService,
+	}
+}
+
+// helper function
+func writeJSON(w http.ResponseWriter, status int, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(data)
+}
+
+func (h *PortfolioHandler) GetPortfolio(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	userIDParam := chi.URLParam(r, "user_id")
+
+	userID, err := uuid.Parse(userIDParam)
+	if err != nil {
+		http.Error(w, "invalid user id", http.StatusBadRequest)
+		return
+	}
+
+	items, err := h.portfolioService.GetPortfolio(r.Context(), userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, items)
+
+}
+
+func (h *PortfolioHandler) GetPortfolioMetrics(w http.ResponseWriter, r *http.Request) {
+	userIDParam := chi.URLParam(r, "user_id")
+
+	userID, err := uuid.Parse(userIDParam)
+	if err != nil {
+		http.Error(w, "invalid user id", http.StatusBadRequest)
+		return
+	}
+
+	value, invested, err := h.portfolioService.GetPortfolioMetrics(
+		r.Context(),
+		userID,
+	)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	resp := map[string]interface{}{
+		"portfolio_value": value,
+		"total_invested":  invested,
+	}
+
+	writeJSON(w, http.StatusOK, resp)
+
+}
+
+func (h *PortfolioHandler) BuyStock(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	var req models.PortfolioItem
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	//checking validating
+	if req.UserID == uuid.Nil || req.StockSymbol == "" || req.Quantity <= 0 {
+		http.Error(w, "invalid or missing body", http.StatusBadRequest)
+		return
+	}
+
+	// BUY STOCK (real operation)
+	err := h.portfolioService.BuyStock(r.Context(), &req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, map[string]string{
+		"message": "stock bought successfully",
+	})
+}
+
+func (h *PortfolioHandler) SellStock(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	var req struct {
+		UserID      uuid.UUID `json:"user_id"`
+		StockSymbol string    `json:"stock_symbol"`
+		Quantity    int       `json:"quantity"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.UserID == uuid.Nil || req.StockSymbol == "" || req.Quantity <= 0 {
+		http.Error(w, "invalid or missing fields", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.portfolioService.
+		SellStock(r.Context(), req.UserID, req.StockSymbol, req.Quantity); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{
+		"message": "stock sold successfully",
+	})
+}
+
+## FILE: backend\internal\handlers\transaction_handler.go
+--------------------------------------------------------------------------------
+package handler
+
+import (
+	"encoding/json"
+	"net/http"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/services"
+)
+
+type TransactionHandler struct {
+	transactionService *services.TransactionService
+}
+
+func NewTransactionHandler(
+	transactionService *services.TransactionService,
+) *TransactionHandler {
+	return &TransactionHandler{
+		transactionService: transactionService,
+	}
+}
+
+type transactionRequest struct {
+	UserID   string `json:"user_id"`
+	Symbol   string `json:"symbol"`
+	Quantity string `json:"quantity"` //decimal as string
+}
+
+//Handlers
+
+// buy stock
+func (h *TransactionHandler) Buy(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	var req transactionRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	userID, err := uuid.Parse(req.UserID)
+	if err != nil {
+		http.Error(w, "invalid user_id", http.StatusBadRequest)
+	}
+
+	qty, err := decimal.NewFromString(req.Quantity)
+	if err != nil {
+		http.Error(w, "invalid quantity", http.StatusBadRequest)
+	}
+
+	if err := h.transactionService.Buy(
+		r.Context(),
+		userID,
+		req.Symbol,
+		qty,
+	); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]string{
+		"status": "buy order executed successfully",
+	})
+}
+
+func (h *TransactionHandler) Sell(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	var req transactionRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid transaction request", http.StatusBadRequest)
+	}
+
+	userID, err := uuid.Parse(req.UserID)
+	if err != nil {
+		http.Error(w, "invalid user_ID", http.StatusBadRequest)
+	}
+
+	qty, err := decimal.NewFromString(req.Quantity)
+	if err != nil {
+		http.Error(w, "invalid quantity", http.StatusBadRequest)
+	}
+
+	if err := h.transactionService.Sell(r.Context(), userID, req.Symbol, qty); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]string{
+		"status": "sale order executed successfully",
+	})
+
+}
+
+func (h *TransactionHandler) GetTransactions(w http.ResponseWriter, r *http.Request) {
+	userIDParam := chi.URLParam(r, "user_id")
+
+	userID, err := uuid.Parse(userIDParam)
+	if err != nil {
+		http.Error(w, "invalid user_id", http.StatusBadRequest)
+	}
+
+	transactions, err := h.transactionService.GetTransactions(
+		r.Context(),
+		userID,
+	)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(transactions)
+}
+
+## FILE: backend\internal\handlers\user_handler.go
+--------------------------------------------------------------------------------
+package handler
+
+import (
+	"encoding/json"
+	"net/http"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/render"
+	"github.com/google/uuid"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/services"
+)
+
+type UserHandler struct {
+	userService *services.UserService
+}
+
+// dependence injection
+// Constructor to inject UserService into handler
+func NewUserHandler(userService *services.UserService) *UserHandler {
+	return &UserHandler{
+		userService: userService,
+	}
+}
+
+// used when creating a user
+type createUserRequest struct {
+	Email     string `json:"email"`
+	FullName  string `json:"full_name"`
+	AvatarURL string `json:"avatar_url"`
+	GoogleID  string `json:"google_id"`
+}
+
+type balanceRequest struct {
+	Amount float64 `json:"amount"`
+}
+
+type updateUserRequest struct {
+	FullName  string `json:"full_name"`
+	AvatarURL string `json:"avatar_url"`
+}
+
+//Create user
+//post /users
+
+func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
+
+	//decoding the json request body
+	//user send the data which is raw data json like  and then it is converted into the struct
+	var req createUserRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	//validation
+	if req.Email == "" || req.GoogleID == "" {
+		http.Error(w, "email and google_id are required", http.StatusBadRequest)
+		return
+	}
+
+	//service layer communication this is the brain
+	//this is like inserting the data into the service layer and then into database
+	user, err := h.userService.CreateUser(
+		r.Context(),
+		req.Email,
+		req.FullName,
+		req.AvatarURL,
+		req.GoogleID,
+	)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	//send response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(w).Encode(user); err != nil {
+		//if encoding fails we send a 500 error
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+}
+
+// get /users/{id}
+func (h *UserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
+	//read id from url
+	idParam := chi.URLParam(r, "id")
+
+	//convert string to uuid
+	userID, err := uuid.Parse(idParam)
+	if err != nil {
+		http.Error(w, "invalid user id", http.StatusNotFound)
+		return
+	}
+
+	//using service layer to fetch data
+	user, err := h.userService.GetUserByID(r.Context(), userID)
+	if err != nil {
+		http.Error(w, "user not found", http.StatusNotFound)
+		return
+	}
+
+	//sending it back in the form of json to client
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(user); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (h *UserHandler) GetUserByEmail(w http.ResponseWriter, r *http.Request) {
+
+	defer r.Body.Close()
+
+	email := chi.URLParam(r, "email")
+
+	if email == "" {
+		http.Error(w, "email is required", http.StatusBadRequest)
+		return
+	}
+
+	user, err := h.userService.GetUserByEmail(r.Context(), email)
+	if err != nil {
+		http.Error(w, "user not found ", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-type", "application/json")
+	if err := json.NewEncoder(w).Encode(user); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// func (h *UserHandler) GetUserByGoogleID(w http.ResponseWriter, r *http.Request) {
+
+// 	defer r.Body.Close()
+
+// 	googleID := chi.URLParam(r, "google_id")
+
+// 	if googleID == "" {
+// 		http.Error(w, "googleID is required", http.StatusBadRequest)
+// 		return
+// 	}
+
+// 	user, err := h.userService.GetUserByGoogleID(r.Context(), googleID)
+// 	if err != nil {
+// 		http.Error(w, "user not found ", http.StatusNotFound)
+// 		return
+// 	}
+
+// 	w.Header().Set("Content-type", "application/json")
+// 	if err := json.NewEncoder(w).Encode(user); err != nil {
+// 		http.Error(w, err.Error(), http.StatusInternalServerError)
+// 	}
+// }
+
+// updating user profile
+func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	idParam := chi.URLParam(r, "id")
+
+	userID, err := uuid.Parse(idParam)
+	if err != nil {
+		http.Error(w, "invalid user id", http.StatusBadRequest)
+		return
+	}
+
+	var req updateUserRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Fetch existing user first (important for partial updates)
+	existing, err := h.userService.GetUserByID(r.Context(), userID)
+	if err != nil {
+		http.Error(w, "user not found", http.StatusNotFound)
+		return
+	}
+
+	// Apply only provided fields
+	if req.FullName != "" {
+		existing.FullName = req.FullName
+	}
+	if req.AvatarURL != "" {
+		existing.AvatarURL = req.AvatarURL
+	}
+
+	updatedUser, err := h.userService.UpdateUser(r.Context(), existing)
+	if err != nil {
+		http.Error(w, "failed to update user", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	render.JSON(w, r, updatedUser)
+}
+
+func (h *UserHandler) IncrementFakeBalance(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	idParam := chi.URLParam(r, "id")
+
+	userID, err := uuid.Parse(idParam)
+	if err != nil {
+		http.Error(w, "invalid user id", http.StatusBadRequest)
+		return
+	}
+
+	var req balanceRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.userService.IncrementFakeBalance(
+		r.Context(),
+		userID,
+		req.Amount,
+	); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	json.NewEncoder(w).Encode(map[string]string{
+		"status": "balance incremented successfully",
+	})
+}
+
+func (h *UserHandler) DeductFakeBalance(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	idParam := chi.URLParam(r, "id")
+
+	userID, err := uuid.Parse(idParam)
+	if err != nil {
+		http.Error(w, "invalid user id", http.StatusBadRequest)
+		return
+	}
+
+	var req balanceRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.userService.DeductFakeBalance(
+		r.Context(),
+		userID,
+		req.Amount,
+	); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	json.NewEncoder(w).Encode(map[string]string{
+		"status": "balance deducted successfully",
+	})
+}
+
+## FILE: backend\internal\middleware\admin.go
+--------------------------------------------------------------------------------
+package middleware
+
+import "net/http"
+
+func Admin(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		isAdmin, ok := r.Context().Value(IsAdminKey).(bool)
+		if !ok || !isAdmin {
+			http.Error(w, "admin only", http.StatusForbidden)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+## FILE: backend\internal\middleware\auth.go
+--------------------------------------------------------------------------------
+package middleware
+
+import (
+	"context"
+	"net/http"
+	"strings"
+
+	"github.com/the-onewho-knocks/finance-Simulation/backend/pkg/utils"
+)
+
+type ctxKey string
+
+const (
+	UserIDKey  ctxKey = "user_id"
+	IsAdminKey ctxKey = "is_admin"
+)
+
+func Auth(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := r.Header.Get("Authorization")
+		if h == "" {
+			http.Error(w, "missing token", http.StatusUnauthorized)
+			return
+		}
+
+		parts := strings.Split(h, " ")
+		if len(parts) != 2 || parts[0] != "Bearer" {
+			http.Error(w, "invalid auth header", http.StatusUnauthorized)
+			return
+		}
+
+		claims, err := utils.ValidateToken(parts[1])
+		if err != nil {
+			http.Error(w, "invalid token", http.StatusUnauthorized)
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), UserIDKey, claims.UserID)
+		ctx = context.WithValue(ctx, IsAdminKey, claims.IsAdmin)
+
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+## FILE: backend\internal\models\budget.go
+--------------------------------------------------------------------------------
+package models
+
+import (
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
+)
+
+type Budget struct {
+	ID          uuid.UUID       `json:"id" db:"id"`
+	UserID      uuid.UUID       `json:"user_id" db:"user_id"`
+	Category    string          `json:"category" db:"category"`
+	LimitAmount decimal.Decimal `json:"limit_amount" db:"limit_amount"`
+	Period      string          `json:"period" db:"period"`
+
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+}
+
+## FILE: backend\internal\models\expense.go
+--------------------------------------------------------------------------------
+package models
+
+import (
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
+)
+
+type Expense struct {
+	ID          uuid.UUID       `json:"id" db:"id"`
+	UserID      uuid.UUID       `json:"user_id" db:"user_id"`
+	Amount      decimal.Decimal `json:"amount" db:"amount"`
+	Category    string          `json:"category" db:"category"`
+	Description string          `json:"description" db:"description"`
+	Date        time.Time       `json:"date" db:"date"`
+
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+}
+
+## FILE: backend\internal\models\heatmap.go
+--------------------------------------------------------------------------------
+package models
+
+type MarketTickersResponse struct {
+	Meta    MetaInfo          `json:"meta"`
+	Headers map[string]string `json:"headers"`
+	Body    []MarketTicker    `json:"body"`
+}
+
+type MetaInfo struct {
+	Version      string `json:"version"`
+	Status       int    `json:"status"`
+	Copywrite    string `json:"copywrite"`
+	TotalRecords int    `json:"totalrecords"`
+}
+
+type MarketTicker struct {
+	Symbol    string `json:"symbol"`
+	Name      string `json:"name"`
+	LastSale  string `json:"lastsale"`
+	NetChange string `json:"netchange"`
+	PctChange string `json:"pctchange"`
+	MarketCap string `json:"marketCap"`
+}
+
+// ===== HEATMAP OUTPUT =====
+
+type HeatmapBlock struct {
+	Symbol    string  `json:"symbol"`
+	Name      string  `json:"name"`
+	Value     float64 `json:"value"` // market cap
+	ChangePct float64 `json:"change_pct"`
+	Color     string  `json:"color"` // color intensity
+}
+
+## FILE: backend\internal\models\holding.go
+--------------------------------------------------------------------------------
+package models
+
+import (
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
+)
+
+type Holding struct {
+	ID          uuid.UUID       `json:"id" db:"id"`
+	PortfolioID uuid.UUID       `json:"portfolio_id" db:"portfolio_id"`
+	Symbol      string          `json:"symbol" db:"symbol"`
+	Quantity    decimal.Decimal `json:"quantity" db:"quantity"`
+	AvgBuyPrice decimal.Decimal `json:"avg_buy_price" db:"avg_buy_price"`
+
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+}
+
+## FILE: backend\internal\models\networth.go
+--------------------------------------------------------------------------------
+package models
+
+import (
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
+)
+
+type Networth struct {
+	ID        string    `json:"id"`
+	UserID    uuid.UUID `json:"user_id"`
+	Total     float64   `json:"total"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// NetWorthHistory stores snapshots of a user's total financial worth
+// including portfolio value, cash balance, expenses impact, etc.
+type NetWorthHistory struct {
+	ID        int64           `json:"id" db:"id"`
+	UserID    uuid.UUID       `json:"user_id" db:"user_id"`
+	NetWorth  decimal.Decimal `json:"net_worth" db:"net_worth"`
+	Timestamp time.Time       `json:"timestamp" db:"timestamp"`
+}
+
+// NetWorthBreakdown provides a richer view,
+// useful for analytics or charts such as
+// (Portfolio Value + Cash - Liabilities)
+type NetWorthBreakdown struct {
+	UserID          uuid.UUID       `json:"user_id"`
+	PortfolioValue  decimal.Decimal `json:"portfolio_value"`
+	CashBalance     decimal.Decimal `json:"cash_balance"`
+	TotalExpenses   decimal.Decimal `json:"total_expenses"`
+	TotalInvested   decimal.Decimal `json:"total_invested"`
+	CurrentNetWorth decimal.Decimal `json:"current_net_worth"`
+	UpdatedAt       time.Time       `json:"updated_at"`
+}
+
+## FILE: backend\internal\models\notification.go
+--------------------------------------------------------------------------------
+package models
+
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
+
+type NotificationType string
+
+const (
+	PriceAlertNotification   NotificationType = "price_alert"
+	ExpenseAlertNotification NotificationType = "expense_alert"
+	SystemNotification       NotificationType = "system"
+	PortfolioNotification    NotificationType = "portfolio"
+)
+
+type Notification struct {
+	ID      uuid.UUID        `json:"id" db:"id"`
+	UserID  uuid.UUID        `json:"user_id" db:"user_id"`
+	Title   string           `json:"title" db:"title"`
+	Message string           `json:"message" db:"message"`
+	Type    NotificationType `json:"type" db:"type"`
+	IsRead  bool             `json:"is_read" db:"is_read"`
+
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+}
+
+type PriceAlert struct {
+	ID          uuid.UUID `json:"id" db:"id"`
+	UserID      uuid.UUID `json:"user_id" db:"user_id"`
+	Symbol      string    `json:"symbol" db:"symbol"`
+	TriggerType string    `json:"trigger_type" db:"trigger_type"`
+	TargetPrice float64   `json:"target_price" db:"target_price"`
+
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+}
+
+## FILE: backend\internal\models\order.go
+--------------------------------------------------------------------------------
+package models
+
+import (
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
+)
+
+type OrderType string
+type OrderSide string
+type OrderStatus string
+
+const (
+	OrderTypeMarket OrderType = "market"
+	OrderTypeLimit  OrderType = "limit"
+	OrderTypeStop   OrderType = "stop_loss"
+
+	SideBuy  OrderSide = "buy"
+	SideSell OrderSide = "sell"
+
+	StatusPending   OrderStatus = "pending"
+	StatusFilled    OrderStatus = "filled"
+	StatusCancelled OrderStatus = "cancelled"
+	StatusRejected  OrderStatus = "rejected"
+)
+
+type Order struct {
+	ID          uuid.UUID        `json:"id" db:"id"`
+	PortfolioID uuid.UUID        `json:"portfolio_id" db:"portfolio_id"`
+	Symbol      string           `json:"symbol" db:"symbol"`
+	Type        OrderType        `json:"type" db:"type"`
+	Side        OrderSide        `json:"side" db:"side"`
+	Price       *decimal.Decimal `json:"price" db:"price"`
+	Status      OrderStatus      `json:"status" db:"status"`
+
+	CreatedAt  time.Time `json:"created_at" db:"created_at"`
+	ExecutedAt time.Time `json:"executed_at" db:"executed_at"`
+}
+
+## FILE: backend\internal\models\planned_expense.go
+--------------------------------------------------------------------------------
+package models
+
+import (
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
+)
+
+type RecurrenceType string
+
+const (
+	RecurringDaily   RecurrenceType = "daily"
+	RecurringWeekly  RecurrenceType = "weekly"
+	RecurringMonthly RecurrenceType = "monthly"
+	RecurringYearly  RecurrenceType = "yearly"
+)
+
+type PlannedExpense struct {
+	ID     uuid.UUID       `json:"id" db:"id"`
+	UserID uuid.UUID       `json:"user_id" db:"user_id"`
+	Title  string          `json:"title" db:"title"`
+	Amount decimal.Decimal `json:"amount" db:"amount"`
+	Note   string          `json:"note" db:"note"`
+	Date   time.Time       `json:"date" db:"date"`
+
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+}
+
+## FILE: backend\internal\models\portfolio.go
+--------------------------------------------------------------------------------
+package models
+
+import (
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
+)
+
+type Portfolio struct {
+	ID      uuid.UUID       `json:"id" db:"id"`
+	UserID  uuid.UUID       `json:"user_id" db:"user_id"`
+	Name    string          `json:"name" db:"name"`
+	Balance decimal.Decimal `json:"balance" db:"balance"`
+
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// we using this one here but lets see if any changes further
+type PortfolioItem struct {
+	ID          uuid.UUID `json:"id"`
+	UserID      uuid.UUID `json:"user_id"`
+	StockSymbol string    `json:"stock_symbol"`
+	Quantity    int       `json:"quantity"`
+	AvgPrice    float64   `json:"avg_price"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+## FILE: backend\internal\models\price.go
+--------------------------------------------------------------------------------
+package models
+
+import (
+	"time"
+
+	"github.com/shopspring/decimal"
+)
+
+type StockPriceSnapshot struct {
+	ID        int             `json:"id" db:"id"`
+	Symbol    string          `json:"symbol" db:"symbol"`
+	Price     decimal.Decimal `json:"price" db:"price"`
+	Open      decimal.Decimal `json:"open" db:"open"`
+	High      decimal.Decimal `json:"high" db:"high"`
+	Low       decimal.Decimal `json:"low" db:"low"`
+	PrevClose decimal.Decimal `json:"prev_close" db:"prev_close"`
+	Volume    int             `json:"volume" db:"volume"`
+
+	Timestamp time.Time `json:"timestamp" db:"timestamp"`
+}
+
+## FILE: backend\internal\models\session.go
+--------------------------------------------------------------------------------
+package models
+
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
+
+type Session struct {
+	ID           uuid.UUID `json:"id" db:"id"`
+	UserID       uuid.UUID `json:"user_id" db:"user_id"`
+	RefreshToken string    `json:"refresh_token" db:"refresh_token"`
+	UserAgent    string    `json:"user_agent" db:"user_agent"`
+	IPAddress    string    `json:"ip_address" db:"ip_address"`
+
+	ExpiresAt time.Time `json:"expires_at" db:"expires_at"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+}
+
+## FILE: backend\internal\models\stock.go
+--------------------------------------------------------------------------------
+package models
+
+import "time"
+
+type Stock struct {
+	Symbol    string  `json:"symbol" db:"symbol"`
+	Name      string  `json:"name" db:"name"`
+	Exchange  string  `json:"exchange" db:"exchange"`
+	Sector    string  `json:"sector" db:"sector"`
+	Industry  string  `json:"industry" db:"industry"`
+	MarketCap float64 `json:"market_cap" db:"market_cap"`
+
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+}
+
+## FILE: backend\internal\models\summary.go
+--------------------------------------------------------------------------------
+package models
+
+import (
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
+)
+
+type MonthlySummary struct {
+	ID      int64           `json:"id" db:"id"`
+	UserID  uuid.UUID       `json:"user_id" db:"user_id"`
+	Month   int             `json:"month" db:"month"`
+	Year    int             `json:"year" db:"year"`
+	Income  decimal.Decimal `json:"income" db:"income"`
+	Expense decimal.Decimal `json:"expense" db:"expense"`
+	Savings decimal.Decimal `json:"savings" db:"savings"`
+
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+}
+
+## FILE: backend\internal\models\transaction.go
+--------------------------------------------------------------------------------
+package models
+
+import (
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
+)
+
+type Transaction struct {
+	ID       uuid.UUID       `json:"id" db:"id"`
+	User_ID  uuid.UUID       `json:"user_id" db:"user_id"`
+	Symbol   string          `json:"symbol" db:"symbol"`
+	Side     OrderSide       `json:"side" db:"side"`
+	Price    decimal.Decimal `json:"price" db:"price"`
+	Quantity decimal.Decimal `json:"quantity" db:"quantity"`
+	Total    decimal.Decimal `json:"total" db:"total"`
+
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+}
+
+## FILE: backend\internal\models\usermodel.go
+--------------------------------------------------------------------------------
+package models
+
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
+
+type User struct {
+	ID           uuid.UUID `json:"id" db:"id"`
+	Email        string    `json:"email" db:"email"`
+	FullName     string    `json:"full_name" db:"full_name"`
+	AvatarURL    string    `json:"avatar_url" db:"avatar_url"`
+	GoogleID     string    `json:"google_id" db:"google_id"`
+	Fake_Balance float64   `json:"fake_balance" db:"fake_balance"`
+	IsAdmin      bool      `json:"is_admin" db:"is_admin"`
+
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+}
+
+## FILE: backend\internal\repositories\interfaces\admin_interface.go
+--------------------------------------------------------------------------------
+package interfaces
+
+import (
+	"github.com/google/uuid"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/models"
+)
+
+type AdminRepository interface {
+	BaseRepository
+
+	GetAllUsers() ([]models.User, error)
+	DeleteUser(id uuid.UUID) error
+	GetUserPortfolio(userID uuid.UUID) ([]models.PortfolioItem, error)
+}
+
+## FILE: backend\internal\repositories\interfaces\base.go
+--------------------------------------------------------------------------------
+package interfaces
+
+import "github.com/jackc/pgx/v5/pgxpool"
+
+type BaseRepository interface {
+	GetDB() *pgxpool.Pool
+}
+
+## FILE: backend\internal\repositories\interfaces\expense_interface.go
+--------------------------------------------------------------------------------
+package interfaces
+
+import (
+	"github.com/google/uuid"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/models"
+)
+
+type ExpenseRepository interface {
+	BaseRepository
+
+	AddExpense(e *models.Expense) error
+	ListExpense(userID uuid.UUID) ([]models.Expense, error)
+	DeleteExpense(id uuid.UUID, userID uuid.UUID) error
+}
+
+## FILE: backend\internal\repositories\interfaces\networth_interface.go
+--------------------------------------------------------------------------------
+package interfaces
+
+import (
+	"github.com/google/uuid"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/models"
+)
+
+type NetworthRepository interface {
+	BaseRepository
+
+	// snapshots
+	SaveNetworth(n *models.Networth) error
+	GetLatestNetworth(userID uuid.UUID) (*models.Networth, error)
+	GetNetworthHistory(userID uuid.UUID) ([]models.Networth, error)
+
+	// history
+	SaveNetWorthHistory(h *models.NetWorthHistory) error
+	GetNetWorthHistoryRecords(userID uuid.UUID) ([]models.NetWorthHistory, error)
+
+	// breakdown
+	SaveBreakdown(b *models.NetWorthBreakdown) error
+	GetBreakdown(userID uuid.UUID) (*models.NetWorthBreakdown, error)
+}
+
+## FILE: backend\internal\repositories\interfaces\planned_interface.go
+--------------------------------------------------------------------------------
+package interfaces
+
+import (
+	"github.com/google/uuid"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/models"
+)
+
+type PlannedExpenseRepository interface {
+	BaseRepository
+
+	CreatePlan(plan *models.PlannedExpense) error
+	GetPlansByUser(userID uuid.UUID) ([]models.PlannedExpense, error)
+	DeletePlan(userID uuid.UUID, planID uuid.UUID) error
+}
+
+## FILE: backend\internal\repositories\interfaces\portfolio_interface.go
+--------------------------------------------------------------------------------
+package interfaces
+
+import (
+	"github.com/google/uuid"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/models"
+)
+
+type PortfolioRepository interface {
+	BaseRepository
+
+	GetPortfolio(userID uuid.UUID) ([]models.PortfolioItem, error)
+	BuyStock(item *models.PortfolioItem) error
+	SellStock(userID uuid.UUID, stockSymbol string, quantity int) error
+	GetStockHolding(userID uuid.UUID, stockSymbol string) (*models.PortfolioItem, error)
+}
+
+## FILE: backend\internal\repositories\interfaces\transaction_interface.go
+--------------------------------------------------------------------------------
+package interfaces
+
+import (
+	"github.com/google/uuid"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/models"
+)
+
+type TransactionRepository interface {
+	BaseRepository
+
+	AddTransaction(tx *models.Transaction) error
+	GetTransaction(userID uuid.UUID) ([]models.Transaction, error)
+}
+
+## FILE: backend\internal\repositories\interfaces\user_interface.go
+--------------------------------------------------------------------------------
+package interfaces
+
+import (
+	"github.com/google/uuid"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/models"
+)
+
+type UserRepository interface {
+	BaseRepository
+
+	CreateUser(user *models.User) error
+	GetUserByID(id uuid.UUID) (*models.User, error)
+	GetUserByEmail(email string) (*models.User, error)
+	UpdateUser(user *models.User) error
+	//	GetUserByGoogleID(googleID string) (*models.User, error)
+
+	IncrementFakeBalance(userID uuid.UUID, amount float64) error
+	DeductFakeBalance(userID uuid.UUID, amount float64) error
+}
+
+## FILE: backend\internal\repositories\pgx\admin_repo.go
+--------------------------------------------------------------------------------
+package pgx
+
+import (
+	"context"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/models"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/repositories/interfaces"
+)
+
+type AdminRepositoryPGX struct {
+	db *pgxpool.Pool
+}
+
+func NewAdminRepository(db *pgxpool.Pool) interfaces.AdminRepository {
+	return &AdminRepositoryPGX{db: db}
+}
+
+func (r *AdminRepositoryPGX) GetDB() *pgxpool.Pool {
+	return r.db
+}
+
+func (r *AdminRepositoryPGX) GetAllUsers() ([]models.User, error) {
+	ctx := context.Background()
+	query := `SELECT id, email, full_name, avatar_url, google_id, created_at, updated_at FROM users ORDER BY created_at DESC`
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var res []models.User
+	for rows.Next() {
+		var u models.User
+		var id uuid.UUID
+		var created time.Time
+		var updated time.Time
+		if err := rows.Scan(&id, &u.Email, &u.FullName, &u.AvatarURL, &u.GoogleID, &created, &updated); err != nil {
+			return nil, err
+		}
+		u.ID = id
+		u.CreatedAt = created
+		u.UpdatedAt = updated
+		res = append(res, u)
+	}
+	return res, nil
+}
+
+func (r *AdminRepositoryPGX) DeleteUser(id uuid.UUID) error {
+	ctx := context.Background()
+	query := `DELETE FROM users WHERE id=$1`
+	_, err := r.db.Exec(ctx, query, id)
+	return err
+}
+
+func (r *AdminRepositoryPGX) GetUserPortfolio(userID uuid.UUID) ([]models.PortfolioItem, error) {
+	query := `SELECT id, user_id, stock_symbol, quantity, avg_price, created_at, updated_at FROM portfolio_items WHERE user_id=$1`
+	ctx := context.Background()
+	rows, err := r.db.Query(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var res []models.PortfolioItem
+	for rows.Next() {
+		var it models.PortfolioItem
+		var id uuid.UUID
+		var uid uuid.UUID
+		var created time.Time
+		var updated time.Time
+		if err := rows.Scan(&id, &uid, &it.StockSymbol, &it.Quantity, &it.AvgPrice, &created, &updated); err != nil {
+			return nil, err
+		}
+		it.ID = id
+		it.UserID = uid
+		it.CreatedAt = created
+		it.UpdatedAt = updated
+		res = append(res, it)
+	}
+	return res, nil
+}
+
+## FILE: backend\internal\repositories\pgx\expense_repo.go
+--------------------------------------------------------------------------------
+package pgx
+
+import (
+	"context"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/models"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/repositories/interfaces"
+)
+
+type ExpenseRepositoryPgx struct {
+	db *pgxpool.Pool
+}
+
+func NewExpenseRepository(db *pgxpool.Pool) interfaces.ExpenseRepository {
+	return &ExpenseRepositoryPgx{db: db}
+}
+
+func (r *ExpenseRepositoryPgx) GetDB() *pgxpool.Pool {
+	return r.db
+}
+
+func (r *ExpenseRepositoryPgx) AddExpense(e *models.Expense) error {
+	query := `
+		insert into expenses (
+			id,
+			user_id,
+			amount,
+			category,
+			description,
+			date,
+			created_at,
+			updated_at
+		)
+		values ($1, $2, $3, $4, $5, $6, $7, $8)
+	`
+
+	_, err := r.db.Exec(
+		context.Background(),
+		query,
+		e.ID,
+		e.UserID,
+		e.Amount,
+		e.Category,
+		e.Description,
+		e.Date,
+		e.CreatedAt,
+		e.UpdatedAt,
+	)
+
+	return err
+}
+
+func (r *ExpenseRepositoryPgx) ListExpense(userID uuid.UUID) ([]models.Expense, error) {
+	query := `
+		select
+			id,
+			user_id,
+			amount,
+			category,
+			description,
+			date,
+			created_at,
+			updated_at
+		from expenses
+		where user_id = $1
+		order by date desc
+	`
+
+	rows, err := r.db.Query(context.Background(), query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var expenses []models.Expense
+
+	for rows.Next() {
+		var e models.Expense
+		if err := rows.Scan(
+			&e.ID,
+			&e.UserID,
+			&e.Amount,
+			&e.Category,
+			&e.Description,
+			&e.Date,
+			&e.CreatedAt,
+			&e.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		expenses = append(expenses, e)
+	}
+
+	return expenses, nil
+}
+
+func (r *ExpenseRepositoryPgx) DeleteExpense(
+	id uuid.UUID,
+	userID uuid.UUID,
+) error {
+	query := `
+		delete from expenses
+		where id = $1 and user_id = $2
+	`
+
+	_, err := r.db.Exec(context.Background(), query, id, userID)
+	return err
+}
+
+## FILE: backend\internal\repositories\pgx\networth_repo.go
+--------------------------------------------------------------------------------
+package pgx
+
+import (
+	"context"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/models"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/repositories/interfaces"
+)
+
+type NetworthRepositoryPgx struct {
+	DB *pgxpool.Pool
+}
+
+func NewNetworthRepository(db *pgxpool.Pool) interfaces.NetworthRepository {
+	return &NetworthRepositoryPgx{DB: db}
+}
+
+func (r *NetworthRepositoryPgx) GetDB() *pgxpool.Pool {
+	return r.DB
+}
+
+func (r *NetworthRepositoryPgx) SaveNetworth(n *models.Networth) error {
+	ctx := context.Background()
+
+	query := `
+		INSERT INTO networth (id, user_id, total, created_at)
+		VALUES ($1, $2, $3, $4)
+	`
+
+	id := uuid.New().String()
+	now := time.Now().UTC()
+
+	_, err := r.DB.Exec(ctx, query, id, n.UserID, n.Total, now)
+	if err != nil {
+		return err
+	}
+
+	n.ID = id
+	n.CreatedAt = now
+	return nil
+}
+
+func (r *NetworthRepositoryPgx) GetLatestNetworth(userID uuid.UUID) (*models.Networth, error) {
+	ctx := context.Background()
+
+	query := `
+		SELECT id, user_id, total, created_at
+		FROM networth
+		WHERE user_id = $1
+		ORDER BY created_at DESC
+		LIMIT 1
+	`
+
+	var n models.Networth
+	err := r.DB.QueryRow(ctx, query, userID).
+		Scan(&n.ID, &n.UserID, &n.Total, &n.CreatedAt)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &n, nil
+}
+
+func (r *NetworthRepositoryPgx) GetNetworthHistory(userID uuid.UUID) ([]models.Networth, error) {
+	ctx := context.Background()
+
+	query := `
+		SELECT id, user_id, total, created_at
+		FROM networth
+		WHERE user_id = $1
+		ORDER BY created_at DESC
+	`
+
+	rows, err := r.DB.Query(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var history []models.Networth
+
+	for rows.Next() {
+		var n models.Networth
+		if err := rows.Scan(
+			&n.ID,
+			&n.UserID,
+			&n.Total,
+			&n.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		history = append(history, n)
+	}
+
+	return history, nil
+}
+
+func (r *NetworthRepositoryPgx) SaveNetWorthHistory(h *models.NetWorthHistory) error {
+	ctx := context.Background()
+
+	query := `
+		INSERT INTO networth_history (user_id, net_worth, timestamp)
+		VALUES ($1, $2, $3)
+		RETURNING id
+	`
+
+	return r.DB.QueryRow(
+		ctx,
+		query,
+		h.UserID,
+		h.NetWorth,
+		h.Timestamp,
+	).Scan(&h.ID)
+}
+
+func (r *NetworthRepositoryPgx) GetNetWorthHistoryRecords(userID uuid.UUID) ([]models.NetWorthHistory, error) {
+	ctx := context.Background()
+
+	query := `
+		SELECT id, user_id, net_worth, timestamp
+		FROM networth_history
+		WHERE user_id = $1
+		ORDER BY timestamp DESC
+	`
+
+	rows, err := r.DB.Query(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var res []models.NetWorthHistory
+
+	for rows.Next() {
+		var h models.NetWorthHistory
+		if err := rows.Scan(
+			&h.ID,
+			&h.UserID,
+			&h.NetWorth,
+			&h.Timestamp,
+		); err != nil {
+			return nil, err
+		}
+		res = append(res, h)
+	}
+
+	return res, nil
+}
+
+func (r *NetworthRepositoryPgx) SaveBreakdown(b *models.NetWorthBreakdown) error {
+	ctx := context.Background()
+
+	query := `
+		INSERT INTO networth_breakdown (
+			user_id,
+			portfolio_value,
+			cash_balance,
+			total_expenses,
+			total_invested,
+			current_net_worth,
+			updated_at
+		)
+		VALUES ($1,$2,$3,$4,$5,$6,$7)
+		ON CONFLICT (user_id)
+		DO UPDATE SET
+			portfolio_value = EXCLUDED.portfolio_value,
+			cash_balance = EXCLUDED.cash_balance,
+			total_expenses = EXCLUDED.total_expenses,
+			total_invested = EXCLUDED.total_invested,
+			current_net_worth = EXCLUDED.current_net_worth,
+			updated_at = EXCLUDED.updated_at
+	`
+
+	_, err := r.DB.Exec(
+		ctx,
+		query,
+		b.UserID,
+		b.PortfolioValue,
+		b.CashBalance,
+		b.TotalExpenses,
+		b.TotalInvested,
+		b.CurrentNetWorth,
+		b.UpdatedAt,
+	)
+
+	return err
+}
+
+func (r *NetworthRepositoryPgx) GetBreakdown(userID uuid.UUID) (*models.NetWorthBreakdown, error) {
+	ctx := context.Background()
+
+	query := `
+		SELECT
+			user_id,
+			portfolio_value,
+			cash_balance,
+			total_expenses,
+			total_invested,
+			current_net_worth,
+			updated_at
+		FROM networth_breakdown
+		WHERE user_id = $1
+	`
+
+	var b models.NetWorthBreakdown
+
+	err := r.DB.QueryRow(ctx, query, userID).Scan(
+		&b.UserID,
+		&b.PortfolioValue,
+		&b.CashBalance,
+		&b.TotalExpenses,
+		&b.TotalInvested,
+		&b.CurrentNetWorth,
+		&b.UpdatedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &b, nil
+}
+
+// package pgx
+
+// import (
+// 	"context"
+// 	"time"
+
+// 	"github.com/google/uuid"
+// 	"github.com/jackc/pgx/v5/pgxpool"
+// 	"github.com/shopspring/decimal"
+// 	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/models"
+// 	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/repositories/interfaces"
+// )
+
+// type NetworthRepositoryPgx struct {
+// 	DB *pgxpool.Pool
+// }
+
+// func NewNetworthRepository(db *pgxpool.Pool) interfaces.NetworthRepository {
+// 	return &NetworthRepositoryPgx{DB: db}
+// }
+
+// func (r *NetworthRepositoryPgx) GetDB() *pgxpool.Pool {
+// 	return r.DB
+// }
+
+// func (r *NetworthRepositoryPgx) SaveNetworth(n *models.Networth) error {
+// 	ctx := context.Background()
+// 	query := `
+// 		insert into networth (id , user_id , total , created_at)
+// 		values ($1,$2,$3,$4)
+// 	`
+// 	id := uuid.New().String()
+// 	created := time.Now().UTC()
+// 	_, err := r.DB.Exec(ctx, query, id, n.UserID, n.Total, created)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	n.ID = id
+// 	n.CreatedAt = created
+// 	return nil
+// }
+
+// func (r *NetworthRepositoryPgx) GetLatestNetworth(userID uuid.UUID) (*models.Networth, error) {
+// 	ctx := context.Background()
+
+// 	query := `
+// 		select id , user_id , total , created_at
+// 		from networth
+// 		where user_id=$1
+// 		order by created_at desc
+// 		limit 1
+// 	`
+// 	var n models.Networth
+// 	err := r.DB.QueryRow(ctx, query, userID).Scan(
+// 		&n.ID, &n.UserID, &n.Total, &n.CreatedAt,
+// 	)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return &n, nil
+// }
+
+// func (r *NetworthRepositoryPgx) GetNetworthHistory(userID uuid.UUID) ([]models.Networth, error) {
+// 	ctx := context.Background()
+
+// 	query := `
+// 		select id , user_id , total , created_at
+// 		from networth
+// 		where user_id=$1 order by created_at desc
+// 	`
+// 	rows, err := r.DB.Query(ctx, query, userID)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	defer rows.Close()
+
+// 	var history []models.Networth
+// 	for rows.Next() {
+// 		var n models.Networth
+// 		if err := rows.Scan(&n.ID, &n.UserID,
+// 			&n.Total, &n.CreatedAt); err != nil {
+// 			return nil, err
+// 		}
+// 		history = append(history, n)
+// 	}
+// 	return history, nil
+// }
+
+// func (r *NetworthRepositoryPgx) SaveNetWorthHistory(h *models.NetWorthHistory) error {
+// 	ctx := context.Background()
+
+// 	query := `
+// 		INSERT INTO networth_history (user_id, net_worth, timestamp)
+// 		VALUES ($1, $2, $3)
+// 		RETURNING id
+// 	`
+
+// 	var id int64
+
+// 	err := r.DB.QueryRow(
+// 		ctx,
+// 		query,
+// 		h.UserID,
+// 		h.NetWorth.String(),
+// 		h.Timestamp,
+// 	).Scan(&id)
+
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	h.ID = id
+// 	return nil
+
+// }
+
+// func (r *NetworthRepositoryPgx) GetNetWorthHistoryRecords(userID uuid.UUID) ([]models.NetWorthHistory, error) {
+// 	ctx := context.Background()
+
+// 	query := `
+// 		SELECT id, user_id, net_worth, timestamp
+// 		FROM networth_history
+// 		WHERE user_id = $1
+// 		ORDER BY timestamp DESC
+// 	`
+
+// 	rows, err := r.DB.Query(ctx, query, userID)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	defer rows.Close()
+
+// 	var res []models.NetWorthHistory
+
+// 	for rows.Next() {
+// 		var h models.NetWorthHistory
+// 		var netWorthStr string
+// 		var uid uuid.UUID
+
+// 		if err := rows.Scan(
+// 			&h.ID,
+// 			&uid,
+// 			&netWorthStr,
+// 			&h.Timestamp,
+// 		); err != nil {
+// 			return nil, err
+// 		}
+
+// 		h.UserID = uid
+// 		h.NetWorth = decimal.RequireFromString(netWorthStr)
+
+// 		res = append(res, h)
+// 	}
+
+// 	return res, nil
+// }
+
+// func (r *NetworthRepositoryPgx) SaveBreakdown(b *models.NetWorthBreakdown) error {
+// 	ctx := context.Background()
+
+// 	query := `
+// 			INSERT INTO networth_breakdown
+// 				(user_id, portfolio_value, cash_balance, total_expenses, total_invested, current_net_worth, updated_at)
+// 			VALUES ($1, $2, $3, $4, $5, $6, $7)
+// 		`
+
+// 	_, err := r.DB.Exec(
+// 		ctx,
+// 		query,
+// 		b.UserID,
+// 		b.PortfolioValue.String(),
+// 		b.CashBalance.String(),
+// 		b.TotalExpenses.String(),
+// 		b.TotalInvested.String(),
+// 		b.CurrentNetWorth.String(),
+// 		b.UpdatedAt,
+// 	)
+
+// 	return err
+// }
+
+// func (r *NetworthRepositoryPgx) GetBreakdown(userID uuid.UUID) (*models.NetWorthBreakdown, error) {
+// 	ctx := context.Background()
+
+// 	query := `
+// 		SELECT
+// 			user_id,
+// 			portfolio_value,
+// 			cash_balance,
+// 			total_expenses,
+// 			total_invested,
+// 			current_net_worth,
+// 			updated_at
+// 		FROM networth_breakdown
+// 		WHERE user_id = $1
+// 		ORDER BY updated_at DESC
+// 		LIMIT 1
+// 	`
+
+// 	var b models.NetWorthBreakdown
+// 	var portfolio, cash, expenses, invested, current string
+// 	var uid uuid.UUID
+
+// 	err := r.DB.QueryRow(ctx, query, userID).Scan(
+// 		&uid,
+// 		&portfolio,
+// 		&cash,
+// 		&expenses,
+// 		&invested,
+// 		&current,
+// 		&b.UpdatedAt,
+// 	)
+
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	b.UserID = uid
+// 	b.PortfolioValue = decimal.RequireFromString(portfolio)
+// 	b.CashBalance = decimal.RequireFromString(cash)
+// 	b.TotalExpenses = decimal.RequireFromString(expenses)
+// 	b.TotalInvested = decimal.RequireFromString(invested)
+// 	b.CurrentNetWorth = decimal.RequireFromString(current)
+
+// 	return &b, nil
+// }
+
+## FILE: backend\internal\repositories\pgx\planned_expense_repo.go
+--------------------------------------------------------------------------------
+package pgx
+
+import (
+	"context"
+	"errors"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/models"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/repositories/interfaces"
+)
+
+type PlannedExpenseRepositoryPgx struct {
+	DB *pgxpool.Pool
+}
+
+func NewPlannedExpenseRepository(db *pgxpool.Pool) interfaces.PlannedExpenseRepository {
+	return &PlannedExpenseRepositoryPgx{DB: db}
+}
+
+func (r *PlannedExpenseRepositoryPgx) GetDB() *pgxpool.Pool {
+	return r.DB
+}
+
+func (r *PlannedExpenseRepositoryPgx) CreatePlan(plan *models.PlannedExpense) error {
+	query := `
+			Insert into planned_expenses (id , user_id , title , amount , note , date)
+			values ($1,$2,$3,$4,$5,$6)
+	`
+	_, err := r.DB.Exec(context.Background(), query, plan.ID, plan.UserID, plan.Title, plan.Amount, plan.Note, plan.Date)
+	return err
+}
+
+func (r *PlannedExpenseRepositoryPgx) GetPlansByUser(userID uuid.UUID) ([]models.PlannedExpense, error) {
+	query := `
+		select id , user_id , title , amount , note , date
+		from planned_expenses where user_id = $1
+	`
+	rows, err := r.DB.Query(context.Background(), query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var res []models.PlannedExpense
+	for rows.Next() {
+		var p models.PlannedExpense
+		err := rows.Scan(&p.ID, &p.UserID, &p.Title, &p.Amount, &p.Note, &p.Date)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, p)
+	}
+	return res, nil
+}
+func (r *PlannedExpenseRepositoryPgx) DeletePlan(
+	userID uuid.UUID,
+	planID uuid.UUID,
+) error {
+
+	query := `
+		DELETE FROM planned_expenses
+		WHERE id = $1 AND user_id = $2
+	`
+
+	cmd, err := r.DB.Exec(
+		context.Background(),
+		query,
+		planID,
+		userID,
+	)
+	if err != nil {
+		return err
+	}
+
+	if cmd.RowsAffected() == 0 {
+		return errors.New("planned expense not found")
+	}
+
+	return nil
+}
+
+## FILE: backend\internal\repositories\pgx\portfolio_repo.go
+--------------------------------------------------------------------------------
+package pgx
+
+import (
+	"context"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/models"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/repositories/interfaces"
+)
+
+type PortfolioRepositoryPgx struct {
+	db *pgxpool.Pool
+}
+
+func NewPortfolioRepository(db *pgxpool.Pool) interfaces.PortfolioRepository {
+	return &PortfolioRepositoryPgx{db: db}
+}
+
+func (r *PortfolioRepositoryPgx) GetDB() *pgxpool.Pool {
+	return r.db
+}
+
+func (r *PortfolioRepositoryPgx) GetPortfolio(userID uuid.UUID) ([]models.PortfolioItem, error) {
+	query := `
+		select id ,user_id , stock_symbol , quantity , avg_price , created_at , updated_at
+		from portfolio_items where user_id = $1
+	`
+	ctx := context.Background()
+	rows, err := r.db.Query(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var res []models.PortfolioItem
+	for rows.Next() {
+		var p models.PortfolioItem
+		err := rows.Scan(&p.ID, &p.UserID, &p.StockSymbol, &p.Quantity, &p.AvgPrice, &p.CreatedAt, &p.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, p)
+	}
+	return res, nil
+}
+
+func (r *PortfolioRepositoryPgx) BuyStock(item *models.PortfolioItem) error {
+	query := `
+	insert into portfolio_items (id , user_id , stock_symbol , quantity,avg_price,created_at , updated_at)
+	values ($1 , $2 ,$3 ,$4 , $5 , now() , now())
+	on conflict (user_id , stock_symbol) do update
+	set quantity = portfolio_items.quantity + excluded.quantity ,
+	avg_price = (
+	case
+		when portfolio_items.quantity = 0 then excluded.avg_price
+		else(
+			(portfolio_items.avg_price * portfolio_items.quantity)
+			+ (excluded.avg_price * excluded.quantity)
+		) / (portfolio_items.quantity + excluded.quantity)
+		end
+	),
+	updated_at = now()
+	`
+	id := uuid.New()
+	_, err := r.db.Exec(context.Background(), query,
+		id,
+		item.UserID,
+		item.StockSymbol,
+		item.Quantity,
+		item.AvgPrice,
+	)
+
+	return err
+}
+
+func (r *PortfolioRepositoryPgx) SellStock(userID uuid.UUID, stockSymbol string, quantity int) error {
+	ctx := context.Background()
+
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	query := `
+		select quantity from portfolio_items
+	 	where
+		user_id = $1 and stock_symbol = $2
+	`
+	var currentQty int
+	err = tx.QueryRow(ctx, query, userID, stockSymbol).Scan(&currentQty)
+	if err != nil {
+		return err
+	}
+
+	if currentQty == quantity {
+		delQuery := `
+			delete from portfolio_items
+			where
+			user_id = $1 and stock_symbol = $2
+		`
+		if _, err := tx.Exec(ctx, delQuery, userID, stockSymbol); err != nil {
+			return err
+		}
+	} else {
+		updateQuery := `
+			update portfolio_items
+			set quantity = quantity - $1 , updated_at = $2
+			where user_id = $3 and stock_symbol = $4
+		`
+		if _, err := tx.Exec(ctx, updateQuery, quantity, time.Now().UTC(), userID, stockSymbol); err != nil {
+			return err
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *PortfolioRepositoryPgx) GetStockHolding(userID uuid.UUID, stockSymbol string) (*models.PortfolioItem, error) {
+	query := `
+		select id , user_id , stock_symbol , quantity , avg_price , created_at , updated_at
+		from portfolio_items
+		where
+		user_id=$1 and stock_symbol=$2
+	`
+	ctx := context.Background()
+
+	var it models.PortfolioItem
+	err := r.db.QueryRow(ctx, query, userID, stockSymbol).Scan(
+		&it.ID,
+		&it.UserID,
+		&it.StockSymbol,
+		&it.Quantity,
+		&it.AvgPrice,
+		&it.CreatedAt,
+		&it.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &it, err
+}
+
+## FILE: backend\internal\repositories\pgx\transaction_repo.go
+--------------------------------------------------------------------------------
+package pgx
+
+import (
+	"context"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/models"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/repositories/interfaces"
+)
+
+type TransactionRepositoryPgx struct {
+	db *pgxpool.Pool
+}
+
+func NewTransactionRepository(db *pgxpool.Pool) interfaces.TransactionRepository {
+	return &TransactionRepositoryPgx{db: db}
+}
+
+func (r *TransactionRepositoryPgx) GetDB() *pgxpool.Pool {
+	return r.db
+}
+
+func (r *TransactionRepositoryPgx) AddTransaction(tx *models.Transaction) error {
+	ctx := context.Background()
+	query := `
+		insert into transactions
+	 	(id , user_id , symbol,side,price,quantity,total,created_at)
+		values ($1,$2,$3,$4,$5,$6,$7,$8)
+	`
+	id := uuid.New()
+	created := time.Now().UTC()
+	_, err := r.db.Exec(ctx, query, id, tx.User_ID, tx.Symbol, tx.Side, tx.Price, tx.Quantity, tx.Total, created)
+	if err != nil {
+		return err
+	}
+	return nil
+
+}
+
+func (r *TransactionRepositoryPgx) GetTransaction(userID uuid.UUID) ([]models.Transaction, error) {
+	ctx := context.Background()
+
+	query := `
+		select id , user_id , symbol , side , price , quantity , total , created_at
+		from transactions
+	 	where
+		user_id = $1 order by created_at desc
+	`
+	rows, err := r.db.Query(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var res []models.Transaction
+	for rows.Next() {
+		var t models.Transaction
+		if err := rows.Scan(&t.ID, &t.User_ID, &t.Symbol, &t.Side, &t.Price, &t.Quantity, &t.Total, &t.CreatedAt); err != nil {
+			return nil, err
+		}
+		res = append(res, t)
+	}
+
+	return res, nil
+
+}
+
+## FILE: backend\internal\repositories\pgx\user_repo.go
+--------------------------------------------------------------------------------
+package pgx
+
+import (
+	"context"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/models"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/repositories/interfaces"
+)
+
+type UserRepositoryPgx struct {
+	db *pgxpool.Pool
+}
+
+func NewUserRepository(db *pgxpool.Pool) interfaces.UserRepository {
+	return &UserRepositoryPgx{db: db}
+}
+
+func (r *UserRepositoryPgx) GetDB() *pgxpool.Pool {
+	return r.db
+}
+
+func (r *UserRepositoryPgx) CreateUser(user *models.User) error {
+	query := `
+		INSERT INTO users (
+			id,
+			email,
+			full_name,
+			avatar_url,
+			google_id,
+			fake_balance,
+			is_admin,
+			created_at,
+			updated_at
+		)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+	`
+
+	_, err := r.db.Exec(
+		context.Background(),
+		query,
+		user.ID,
+		user.Email,
+		user.FullName,
+		user.AvatarURL,
+		user.GoogleID,
+		user.Fake_Balance,
+		user.IsAdmin,
+		user.CreatedAt,
+		user.UpdatedAt,
+	)
+
+	return err
+}
+
+// im a but suspicious here to the id may cause data type conflict
+func (r *UserRepositoryPgx) GetUserByID(id uuid.UUID) (*models.User, error) {
+	user := models.User{}
+	query := `
+	select  id , email , full_name , avatar_url, google_id, fake_balance
+	from users where id=$1
+	`
+	if err := r.db.QueryRow(context.Background(), query, id).Scan(
+		&user.ID,
+		&user.Email,
+		&user.FullName,
+		&user.AvatarURL,
+		&user.GoogleID,
+		&user.Fake_Balance,
+	); err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (r *UserRepositoryPgx) GetUserByEmail(email string) (*models.User, error) {
+	user := models.User{}
+	query := `
+		SELECT id, email, full_name, avatar_url, google_id, fake_balance
+		FROM users WHERE email=$1
+	`
+	err := r.db.QueryRow(context.Background(), query, email).Scan(
+		&user.ID,
+		&user.Email,
+		&user.FullName,
+		&user.AvatarURL,
+		&user.GoogleID,
+		&user.Fake_Balance,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (r *UserRepositoryPgx) UpdateUser(user *models.User) error {
+	query := `
+		UPDATE users
+		SET 
+			full_name=$1,
+			avatar_url=$2,
+			updated_at=$3
+		WHERE id=$4
+	`
+
+	_, err := r.db.Exec(
+		context.Background(),
+		query,
+		user.FullName,
+		user.AvatarURL,
+		user.UpdatedAt,
+		user.ID,
+	)
+
+	return err
+}
+
+func (r *UserRepositoryPgx) IncrementFakeBalance(userID uuid.UUID, amount float64) error {
+	query := `
+		update users set fake_balance = fake_balance + $1 where id=$2
+	`
+	_, err := r.db.Exec(context.Background(), query, amount, userID)
+	return err
+}
+
+func (r *UserRepositoryPgx) DeductFakeBalance(userID uuid.UUID, amount float64) error {
+	query := `
+		update users set fake_balance = fake_balance - $1 where id=$2
+	`
+	_, err := r.db.Exec(context.Background(), query, amount, userID)
+	return err
+}
+
+func (r *UserRepositoryPgx) getSingle(where string, value any) (*models.User, error) {
+	query := `
+		select id , email , full_name , avatar_url , google_id , fake_balance
+		, is_admin , created_at , updated_at 
+		from users where
+	` + where
+
+	var u models.User
+
+	err := r.db.QueryRow(context.Background(), query, value).Scan(
+		&u.ID,
+		&u.Email,
+		&u.FullName,
+		&u.AvatarURL,
+		&u.GoogleID,
+		&u.Fake_Balance,
+		&u.IsAdmin,
+		&u.CreatedAt,
+		&u.UpdatedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &u, nil
+}
+
+// func (r *UserRepositoryPgx) GetUserByGoogleID(googleID string) (*models.User, error) {
+// 	return r.getSingle("google_id=$1", googleID)
+// }
+
+## FILE: backend\internal\routes\admin_routes.go
+--------------------------------------------------------------------------------
+package routes
+
+import (
+	"github.com/go-chi/chi/v5"
+	handler "github.com/the-onewho-knocks/finance-Simulation/backend/internal/handlers"
+)
+
+func RegisterAdminRoutes(
+	r chi.Router,
+	adminHandler *handler.AdminHandler,
+) {
+	r.Route("/admin", func(r chi.Router) {
+
+		// users
+		r.Get("/users", adminHandler.GetAllUsers)
+		r.Delete("/users/{userID}", adminHandler.DeleteUser)
+
+		// portfolio of a specific user
+		r.Get("/users/{userID}/portfolio", adminHandler.GetUserPortfolio)
+	})
+}
+
+## FILE: backend\internal\routes\auth_routes.go
+--------------------------------------------------------------------------------
+package routes
+
+import (
+	"github.com/go-chi/chi/v5"
+	handler "github.com/the-onewho-knocks/finance-Simulation/backend/internal/handlers"
+)
+
+// RegisterAuthRoutes registers authentication-related routes
+func RegisterAuthRoutes(r chi.Router, authHandler *handler.AuthHandler) {
+
+	// Auth routes group
+	r.Route("/auth", func(r chi.Router) {
+
+		// POST /auth/google
+		// Body: { "id_token": "<google-id-token>" }
+		r.Post("/google", authHandler.GoogleLogin)
+	})
+}
+
+## FILE: backend\internal\routes\company_routes.go
+--------------------------------------------------------------------------------
+package routes
+
+import (
+	"github.com/go-chi/chi/v5"
+	handler "github.com/the-onewho-knocks/finance-Simulation/backend/internal/handlers"
+)
+
+func RegisterIndianStockRoutes(
+	r chi.Router,
+	h *handler.IndianStockHandler,
+) {
+	r.Route("/stocks", func(r chi.Router) {
+		r.Get("/indian", h.GetStockByName)
+	})
+}
+
+## FILE: backend\internal\routes\dashboard_routes.go
+--------------------------------------------------------------------------------
+package routes
+
+import (
+	"github.com/go-chi/chi/v5"
+	handler "github.com/the-onewho-knocks/finance-Simulation/backend/internal/handlers"
+)
+
+func RegisterDashboardRoutes(
+	r chi.Router,
+	h *handler.DashboardHandler,
+) {
+	r.Route("/dashboard", func(r chi.Router) {
+		r.Get("/{userID}", h.GetDashboard)
+	})
+}
+
+## FILE: backend\internal\routes\expense_routes.go
+--------------------------------------------------------------------------------
+package routes
+
+import (
+	"github.com/go-chi/chi/v5"
+	handler "github.com/the-onewho-knocks/finance-Simulation/backend/internal/handlers"
+)
+
+func RegisterExpenseRoutes(
+	r chi.Router,
+	expenseHandler *handler.ExpenseHandler,
+) {
+	r.Route("/users/{userID}/expenses", func(r chi.Router) {
+
+		r.Post("/", expenseHandler.AddExpense)           // add expense
+		r.Get("/", expenseHandler.ListExpenses)          // list expenses
+		r.Get("/total", expenseHandler.GetTotalExpenses) // total expenses
+		r.Delete("/{expenseID}", expenseHandler.DeleteExpense)
+	})
+}
+
+## FILE: backend\internal\routes\heatmap_routes.go
+--------------------------------------------------------------------------------
+package routes
+
+import (
+	"github.com/go-chi/chi/v5"
+	handler "github.com/the-onewho-knocks/finance-Simulation/backend/internal/handlers"
+)
+
+func RegisterHeatmapRoutes(
+	r chi.Router,
+	heatmapHandler *handler.HeatmapHandler,
+) {
+	r.Route("/heatmap", func(r chi.Router) {
+		r.Get("/market", heatmapHandler.GetMarketHeatmap)
+	})
+}
+
+## FILE: backend\internal\routes\history_routes.go
+--------------------------------------------------------------------------------
+package routes
+
+import (
+	"github.com/go-chi/chi/v5"
+	handler "github.com/the-onewho-knocks/finance-Simulation/backend/internal/handlers"
+)
+
+func RegisterHistoryRoutes(
+	r chi.Router,
+	handler *handler.HistoryHandler,
+) {
+	r.Route("/history", func(r chi.Router) {
+		r.Get("/{stock}", handler.GetHistory)
+		r.Get("/{stock}/stats", handler.GetHistoryStats)
+	})
+}
+
+## FILE: backend\internal\routes\indicator_routes.go
+--------------------------------------------------------------------------------
+package routes
+
+import (
+	"github.com/go-chi/chi/v5"
+	handler "github.com/the-onewho-knocks/finance-Simulation/backend/internal/handlers"
+)
+
+func IndicatorRoutes(
+	r chi.Router,
+	handler *handler.IndicatorHandler,
+) {
+	r.Route("/indicators", func(r chi.Router) {
+		r.Get("/sma/{symbol}", handler.GetSMA)
+		r.Get("/rsi/{symbol}", handler.GetRSI)
+	})
+}
+
+## FILE: backend\internal\routes\market_routes.go
+--------------------------------------------------------------------------------
+package routes
+
+import (
+	"github.com/go-chi/chi/v5"
+
+	handler "github.com/the-onewho-knocks/finance-Simulation/backend/internal/handlers"
+)
+
+func RegisterMarketRoutes(r chi.Router, h *handler.MarketHandler) {
+
+	r.Route("/market", func(r chi.Router) {
+
+		// prices
+		r.Get("/price/{symbol}", h.GetPrice)
+		r.Get("/prices", h.GetPrices)
+
+		// streaming
+		r.Get("/stream", h.PriceStream)
+
+		// quotes & news
+		r.Get("/quote/{ticker}", h.GetQuote)
+		r.Get("/news/{ticker}", h.GetMarketNews)
+	})
+}
+
+## FILE: backend\internal\routes\networth_routes.go
+--------------------------------------------------------------------------------
+package routes
+
+import (
+	"github.com/go-chi/chi/v5"
+	handler "github.com/the-onewho-knocks/finance-Simulation/backend/internal/handlers"
+)
+
+// RegisterNetworthRoutes registers all networth-related endpoints
+func RegisterNetworthRoutes(
+	r chi.Router,
+	h *handler.NetworthHandler,
+) {
+	r.Route("/users/{userID}/networth", func(r chi.Router) {
+
+		//  recompute everything
+		r.Post("/recalculate", h.RecalculateNetworth)
+
+		//  current networth
+		r.Get("/latest", h.GetLatestNetworth)
+
+		// historical snapshots
+		r.Get("/history", h.GetNetworthHistory)
+
+		// full breakdown
+		r.Get("/breakdown", h.GetNetworthBreakdown)
+	})
+}
+
+## FILE: backend\internal\routes\planned_expense_routes.go
+--------------------------------------------------------------------------------
+package routes
+
+import (
+	"github.com/go-chi/chi/v5"
+
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/handlers"
+)
+
+// RegisterPlannedExpenseRoutes binds planned expense endpoints
+func RegisterPlannedExpenseRoutes(
+	r chi.Router,
+	handler *handler.PlannedExpenseHandler,
+) {
+	r.Route("/users/{userID}/planned-expenses", func(r chi.Router) {
+
+		// Create planned expense
+		r.Post("/", handler.CreatePlan)
+
+		// Get all planned expenses for a user
+		r.Get("/", handler.GetPlans)
+
+		// Delete a planned expense
+		r.Delete("/{planID}", handler.DeletePlan)
+	})
+}
+
+## FILE: backend\internal\routes\portfolio_routes.go
+--------------------------------------------------------------------------------
+package routes
+
+import (
+	"github.com/go-chi/chi/v5"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/handlers"
+)
+
+func RegisterPortfolioRoutes(
+	r chi.Router,
+	h *handler.PortfolioHandler,
+) {
+	r.Route("/portfolio", func(r chi.Router) {
+
+		// portfolio listing
+		r.Get("/{user_id}", h.GetPortfolio)
+
+		// portfolio metrics (market value, invested amount)
+		r.Get("/{user_id}/metrics", h.GetPortfolioMetrics)
+
+		// trading actions
+		//this are admin internal actions the user should not use this functions actully
+		r.Post("/buy", h.BuyStock)
+		r.Post("/sell", h.SellStock)
+	})
+}
+
+## FILE: backend\internal\routes\routes.go
+--------------------------------------------------------------------------------
+package routes
+
+import (
+	"github.com/go-chi/chi/v5"
+
+	handler "github.com/the-onewho-knocks/finance-Simulation/backend/internal/handlers"
+)
+
+type Handlers struct {
+	Auth           *handler.AuthHandler
+	User           *handler.UserHandler
+	Admin          *handler.AdminHandler
+	Portfolio      *handler.PortfolioHandler
+	Transaction    *handler.TransactionHandler
+	Market         *handler.MarketHandler
+	Expense        *handler.ExpenseHandler
+	PlannedExpense *handler.PlannedExpenseHandler
+	Networth       *handler.NetworthHandler
+	Heatmap        *handler.HeatmapHandler
+	Dashboard      *handler.DashboardHandler
+}
+
+func RegisterRoutes(h *Handlers) chi.Router {
+	r := chi.NewRouter()
+
+	// =========================
+	// Public routes
+	// =========================
+	RegisterAuthRoutes(r, h.Auth)
+
+	// =========================
+	// App routes
+	// =========================
+	RegisterUserRoutes(r, h.User)
+	RegisterAdminRoutes(r, h.Admin)
+	RegisterPortfolioRoutes(r, h.Portfolio)
+	RegisterTransactionRoutes(r, h.Transaction)
+	RegisterExpenseRoutes(r, h.Expense)
+	RegisterPlannedExpenseRoutes(r, h.PlannedExpense)
+	RegisterNetworthRoutes(r, h.Networth)
+	RegisterMarketRoutes(r, h.Market)
+	RegisterHeatmapRoutes(r, h.Heatmap)
+	RegisterDashboardRoutes(r, h.Dashboard)
+
+	return r
+}
+
+## FILE: backend\internal\routes\transaction_routes.go
+--------------------------------------------------------------------------------
+package routes
+
+import (
+	"github.com/go-chi/chi/v5"
+
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/handlers"
+)
+
+// RegisterTransactionRoutes registers all transaction-related routes
+func RegisterTransactionRoutes(
+	r chi.Router,
+	transactionHandler *handler.TransactionHandler,
+) {
+	r.Route("/transactions", func(r chi.Router) {
+		r.Post("/buy", transactionHandler.Buy)
+		r.Post("/sell", transactionHandler.Sell)
+		r.Get("/{user_id}", transactionHandler.GetTransactions)
+	})
+}
+
+## FILE: backend\internal\routes\user_routes.go
+--------------------------------------------------------------------------------
+package routes
+
+import (
+	"github.com/go-chi/chi/v5"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/handlers"
+)
+
+func RegisterUserRoutes(r chi.Router, h *handler.UserHandler) {
+	r.Post("/users", h.CreateUser)
+
+	r.Get("/users/{id}", h.GetUserByID)
+	r.Get("/users/email/{email}", h.GetUserByEmail)
+	//	r.Get("/users/google/{google_id}", h.GetUserByGoogleID)
+
+	r.Patch("/users/{id}", h.UpdateUser)
+
+	r.Post("/users/{id}/balance/add", h.IncrementFakeBalance)
+	r.Post("/users/{id}/balance/deduct", h.DeductFakeBalance)
+}
+
+## FILE: backend\internal\services\admin_service.go
+--------------------------------------------------------------------------------
+package services
+
+import (
+	"context"
+	"errors"
+
+	"github.com/google/uuid"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/models"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/repositories/interfaces"
+)
+
+type AdminService struct {
+	adminRepo interfaces.AdminRepository
+}
+
+func NewAdminService(adminRepo interfaces.AdminRepository) *AdminService {
+	return &AdminService{
+		adminRepo: adminRepo,
+	}
+}
+
+//read functions
+func (s *AdminService) GetAllUsers(
+	ctx context.Context,
+) ([]models.User, error) {
+	return s.adminRepo.GetAllUsers()
+}
+
+func (s *AdminService) GetUserPortfolio(
+	ctx context.Context,
+	userID uuid.UUID,
+) ([]models.PortfolioItem, error) {
+	return s.adminRepo.GetUserPortfolio(userID)
+}
+
+//delete a user account(admin-only prevliage)
+//Admin deletes are dangerous
+func (s *AdminService) DeleteUser(
+	ctx context.Context,
+	userID uuid.UUID,
+) error {
+	if userID == uuid.Nil {
+		return errors.New("invalid user id")
+	}
+	return s.adminRepo.DeleteUser(userID)
+}
+
+## FILE: backend\internal\services\auth_service.go
+--------------------------------------------------------------------------------
+package services
+
+import (
+	"context"
+	"errors"
+	"os"
+
+	"github.com/google/uuid"
+	"google.golang.org/api/idtoken"
+)
+
+type AuthService struct {
+	userService *UserService
+}
+
+func NewAuthService(userService *UserService) *AuthService {
+	return &AuthService{
+		userService: userService,
+	}
+}
+
+type AuthResult struct {
+	UserID  uuid.UUID
+	Email   string
+	Name    string
+	Avatar  string
+	IsAdmin bool
+}
+
+func (s *AuthService) GoogleLogin(
+	ctx context.Context,
+	idToken string,
+) (*AuthResult, error) {
+
+	if idToken == "" {
+		return nil, errors.New("missing id token")
+	}
+
+	clientID := os.Getenv("GOOGLE_CLIENT_ID")
+	if clientID == "" {
+		return nil, errors.New("google client id not configured")
+	}
+
+	payload, err := idtoken.Validate(ctx, idToken, clientID)
+	if err != nil {
+		return nil, errors.New("invalid google token")
+	}
+
+	email, _ := payload.Claims["email"].(string)
+	name, _ := payload.Claims["name"].(string)
+	picture, _ := payload.Claims["picture"].(string)
+	sub, _ := payload.Claims["sub"].(string)
+
+	user, err := s.userService.CreateUser(ctx, email, name, picture, sub)
+	if err != nil {
+		return nil, err
+	}
+
+	return &AuthResult{
+		UserID:  user.ID,
+		Email:   user.Email,
+		Name:    user.FullName,
+		Avatar:  user.AvatarURL,
+		IsAdmin: user.IsAdmin,
+	}, nil
+}
+
+## FILE: backend\internal\services\company_service.go
+--------------------------------------------------------------------------------
+package services
+
+import (
+	"encoding/json"
+
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/stockapi"
+)
+
+type IndianStockService struct {
+	api *stockapi.IndianStockClient
+}
+
+func NewIndianStockService(api *stockapi.IndianStockClient) *IndianStockService {
+	return &IndianStockService{api: api}
+}
+
+func (s *IndianStockService) GetStockByNameRaw(name string) (json.RawMessage, error) {
+	return s.api.GetStockByNameRaw(name)
+}
+
+## FILE: backend\internal\services\dashboard_service.go
+--------------------------------------------------------------------------------
+package services
+
+import (
+	"context"
+
+	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
+
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/cache"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/models"
+)
+
+type DashboardService struct {
+	networthService  *NetworthService
+	portfolioService *PortfolioService
+	expenseService   *ExpenseService
+	cache            *cache.DashboardCache
+}
+
+func NewDashboardService(
+	networthService *NetworthService,
+	portfolioService *PortfolioService,
+	expenseService *ExpenseService,
+	cache *cache.DashboardCache,
+) *DashboardService {
+	return &DashboardService{
+		networthService:  networthService,
+		portfolioService: portfolioService,
+		expenseService:   expenseService,
+		cache:            cache,
+	}
+}
+
+func (s *DashboardService) AggregateDashboard(
+	ctx context.Context,
+	userID uuid.UUID,
+) (
+	*models.NetWorthBreakdown,
+	decimal.Decimal,
+	[]models.Expense,
+	error,
+) {
+
+	userKey := userID.String()
+
+	// ================= NET WORTH =================
+	var networth *models.NetWorthBreakdown
+
+	if val, ok := s.cache.GetNetworth(ctx, userKey); ok {
+		networth = &models.NetWorthBreakdown{
+			UserID:          userID,
+			CurrentNetWorth: decimal.NewFromFloat(val),
+		}
+	} else {
+		nw, err := s.networthService.RecalculateNetworth(ctx, userID)
+		if err == nil && nw != nil {
+			networth = nw
+			_ = s.cache.SetNetworth(ctx, userKey, nw.CurrentNetWorth.InexactFloat64())
+		}
+	}
+
+	// ================= PORTFOLIO =================
+	portfolioValue := decimal.Zero
+
+	if val, ok := s.cache.GetPortfolioValue(ctx, userKey); ok {
+		portfolioValue = decimal.NewFromFloat(val)
+	} else {
+		value, _, err := s.portfolioService.GetPortfolioMetrics(ctx, userID)
+		if err == nil {
+			portfolioValue = value
+			_ = s.cache.SetPortfolioValue(ctx, userKey, value.InexactFloat64())
+		}
+	}
+
+	// ================= EXPENSES =================
+	expenses, _ := s.expenseService.ListExpenses(ctx, userID)
+
+	return networth, portfolioValue, expenses, nil
+}
+
+## FILE: backend\internal\services\expense_service.go
+--------------------------------------------------------------------------------
+package services
+
+import (
+	"context"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/models"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/repositories/interfaces"
+)
+
+type ExpenseService struct {
+	expenseRepo interfaces.ExpenseRepository
+}
+
+func NewExpenseService(
+	expenseRepo interfaces.ExpenseRepository,
+) *ExpenseService {
+	return &ExpenseService{
+		expenseRepo: expenseRepo,
+	}
+}
+
+func (s *ExpenseService) AddExpense(
+	ctx context.Context,
+	userID uuid.UUID,
+	amount decimal.Decimal,
+	category string,
+	description string,
+	date time.Time,
+) error {
+
+	expense := &models.Expense{
+		ID:          uuid.New(),
+		UserID:      userID,
+		Amount:      amount,
+		Category:    category,
+		Description: description,
+		Date:        date,
+		CreatedAt:   time.Now().UTC(),
+		UpdatedAt:   time.Now().UTC(),
+	}
+
+	return s.expenseRepo.AddExpense(expense)
+}
+
+func (s *ExpenseService) ListExpenses(
+	ctx context.Context,
+	userID uuid.UUID,
+) ([]models.Expense, error) {
+	return s.expenseRepo.ListExpense(userID)
+}
+
+func (s *ExpenseService) DeleteExpense(
+	ctx context.Context,
+	expenseID uuid.UUID,
+	userID uuid.UUID,
+) error {
+	return s.expenseRepo.DeleteExpense(expenseID, userID)
+}
+
+func (s *ExpenseService) GetTotalExpenses(
+	ctx context.Context,
+	userID uuid.UUID,
+) (decimal.Decimal, error) {
+
+	expenses, err := s.expenseRepo.ListExpense(userID)
+	if err != nil {
+		return decimal.Zero, err
+	}
+
+	total := decimal.Zero
+	for _, e := range expenses {
+		total = total.Add(e.Amount)
+	}
+
+	return total, nil
+}
+
+## FILE: backend\internal\services\heatmap_service.go
+--------------------------------------------------------------------------------
+package services
+
+import (
+	"context"
+	"strconv"
+	"strings"
+
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/cache"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/models"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/stockapi"
+)
+
+type HeatmapService struct {
+	client *stockapi.RapidApiClient
+	cache  *cache.HeatmapCache
+}
+
+func NewHeatmapService(
+	client *stockapi.RapidApiClient,
+	cache *cache.HeatmapCache,
+) *HeatmapService {
+	return &HeatmapService{client: client, cache: cache}
+}
+
+func parseNumber(s string) float64 {
+	s = strings.ReplaceAll(s, "$", "")
+	s = strings.ReplaceAll(s, ",", "")
+	s = strings.ReplaceAll(s, "%", "")
+	v, _ := strconv.ParseFloat(s, 64)
+	return v
+}
+
+func (s *HeatmapService) GetMarketHeatmap(
+	ctx context.Context,
+	page int,
+) ([]models.HeatmapBlock, error) {
+
+	var cached []models.HeatmapBlock
+	if ok, _ := s.cache.Get(ctx, page, &cached); ok {
+		return cached, nil
+	}
+
+	resp, err := s.client.GetMarketTickersRaw(page)
+	if err != nil {
+		return nil, err
+	}
+
+	heatmap := make([]models.HeatmapBlock, 0, len(resp.Body))
+	for _, t := range resp.Body {
+		change := parseNumber(t.PctChange)
+		heatmap = append(heatmap, models.HeatmapBlock{
+			Symbol:    t.Symbol,
+			Name:      t.Name,
+			Value:     parseNumber(t.MarketCap),
+			ChangePct: parseNumber(t.PctChange),
+			Color:     heatmapColor(change),
+		})
+	}
+
+	_ = s.cache.Set(ctx, page, heatmap)
+	return heatmap, nil
+}
+
+func heatmapColor(change float64) string {
+	switch {
+	case change >= 3:
+		return "#006400" // dark green
+	case change >= 1:
+		return "#00a000" // green
+	case change > 0:
+		return "#7CFC00" // light green
+	case change == 0:
+		return "#808080" // grey
+	case change > -1:
+		return "#FF7F7F" // light red
+	case change > -3:
+		return "#ff0000" // red
+	default:
+		return "#8B0000" // dark red
+	}
+}
+
+## FILE: backend\internal\services\history_service.go
+--------------------------------------------------------------------------------
+package services
+
+import (
+	"context"
+
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/cache"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/stockapi"
+)
+
+type HistoryService struct {
+	api   stockapi.RapidApiClient
+	cache *cache.HistoryCache
+}
+
+func NewHistoryService(
+	api stockapi.RapidApiClient,
+	cache *cache.HistoryCache,
+) *HistoryService {
+	return &HistoryService{
+		api:   api,
+		cache: cache,
+	}
+}
+
+func (s *HistoryService) GetHistoricalPrices(
+	stock string,
+	period string,
+) ([]stockapi.HistoricalPrice, error) {
+
+	ctx := context.Background()
+
+	// 1. Check cache
+	if data, ok := s.cache.GetHistory(ctx, stock, period); ok {
+		return data, nil
+	}
+
+	// 2. Fetch from API
+	data, err := s.api.GetHistoricalPrices(stock, period)
+	if err != nil {
+		return nil, err
+	}
+
+	//3. Store in cache (fire-and-forget)
+	_ = s.cache.SetHistory(ctx, stock, period, data)
+
+	return data, nil
+}
+
+func (s *HistoryService) GetHistoricalStats(
+	stock string,
+	stats string,
+) (stockapi.HistoricalStats, error) {
+
+	ctx := context.Background()
+
+	// Cache first
+	if data, ok := s.cache.GetHistoryStats(ctx, stock, stats); ok {
+		return data, nil
+	}
+
+	// API call
+	data, err := s.api.GetHistoricalStats(stock, stats)
+	if err != nil {
+		return nil, err
+	}
+
+	// Cache result
+	_ = s.cache.SetHistoryStats(ctx, stock, stats, data)
+
+	return data, nil
+}
+
+## FILE: backend\internal\services\indicator_service.go
+--------------------------------------------------------------------------------
+package services
+
+import (
+	"context"
+	"errors"
+	"fmt"
+
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/cache"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/stockapi"
+)
+
+type IndicatorService struct {
+	api   stockapi.IndicatorClient
+	cache *cache.IndicatorCache
+}
+
+func NewIndicatorService(
+	api stockapi.IndicatorClient,
+	cache *cache.IndicatorCache,
+) *IndicatorService {
+	return &IndicatorService{
+		api:   api,
+		cache: cache,
+	}
+}
+
+// ================= SMA =================
+
+func (s *IndicatorService) GetSMA(
+	ctx context.Context,
+	symbol string,
+	interval string,
+	timePeriod int,
+	limit int,
+) ([]stockapi.SMAPoint, error) {
+
+	cacheKey := fmt.Sprintf(
+		"sma:%s:%s:%d:%d",
+		symbol, interval, timePeriod, limit,
+	)
+
+	var cached []stockapi.SMAPoint
+	if ok, _ := s.cache.Get(ctx, cacheKey, &cached); ok {
+		return cached, nil
+	}
+
+	resp, err := s.api.GetSMA(
+		symbol,
+		interval,
+		"close",
+		timePeriod,
+		limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(resp.Body) == 0 {
+		return nil, errors.New("no SMA data returned")
+	}
+
+	_ = s.cache.Set(ctx, cacheKey, resp.Body)
+	return resp.Body, nil
+}
+
+// ================= RSI =================
+
+func (s *IndicatorService) GetRSI(
+	ctx context.Context,
+	symbol string,
+	interval string,
+	timePeriod int,
+	limit int,
+) ([]stockapi.RSIPoint, error) {
+
+	cacheKey := fmt.Sprintf(
+		"rsi:%s:%s:%d:%d",
+		symbol, interval, timePeriod, limit,
+	)
+
+	var cached []stockapi.RSIPoint
+	if ok, _ := s.cache.Get(ctx, cacheKey, &cached); ok {
+		return cached, nil
+	}
+
+	resp, err := s.api.GetRSI(
+		symbol,
+		interval,
+		"close",
+		timePeriod,
+		limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(resp.Body) == 0 {
+		return nil, errors.New("no RSI data returned")
+	}
+
+	_ = s.cache.Set(ctx, cacheKey, resp.Body)
+	return resp.Body, nil
+}
+
+// func (s *IndicatorService) GetSMAAndRSI(
+// 	ctx context.Context,
+// 	symbol string,
+// 	interval string,
+// 	timePeriod int,
+// 	limit int,
+// ) (stockapi.SMAPoint, stockapi.RSIPoint, error) {
+
+// 	var (
+// 		sma stockapi.SMAPoint
+// 		rsi stockapi.RSIPoint
+// 	)
+
+// 	errCh := make(chan error, 2)
+// 	wg := sync.WaitGroup{}
+// 	wg.Add(2)
+
+// 	go func() {
+// 		defer wg.Done()
+// 		var err error
+// 		sma, err = s.api.GetSMA(ctx, symbol, interval, timePeriod, limit)
+// 		if err != nil {
+// 			errCh <- err
+// 		}
+// 	}()
+
+// 	go func() {
+// 		defer wg.Done()
+// 		var err error
+// 		rsi, err = s.api.GetRSI(ctx, symbol, interval, timePeriod, limit)
+// 		if err != nil {
+// 			errCh <- err
+// 		}
+// 	}()
+
+// 	wg.Wait()
+// 	close(errCh)
+
+// 	if err := <-errCh; err != nil {
+// 		return nil, nil, err
+// 	}
+
+// 	return sma, rsi, nil
+// }
+
+## FILE: backend\internal\services\market_service.go
+--------------------------------------------------------------------------------
+package services
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/cache"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/stockapi"
+)
+
+type MarketService struct {
+	client     *http.Client
+	apiKey     string
+	cache      *cache.MarketCache
+	stockCache *cache.StockCache
+}
+
+func NewMarketService(
+	apiKey string,
+	cache *cache.MarketCache,
+	stockCache *cache.StockCache,
+) *MarketService {
+	return &MarketService{
+		client:     &http.Client{Timeout: 5 * time.Second},
+		apiKey:     apiKey,
+		cache:      cache,
+		stockCache: stockCache,
+	}
+}
+
+func parsePrice(s string) (float64, error) {
+	s = strings.ReplaceAll(s, "$", "")
+	s = strings.ReplaceAll(s, ",", "")
+	s = strings.TrimSpace(s)
+	return strconv.ParseFloat(s, 64)
+}
+
+func parseChange(s string) float64 {
+	s = strings.ReplaceAll(s, "%", "")
+	s = strings.ReplaceAll(s, "+", "")
+	s = strings.TrimSpace(s)
+	val, _ := strconv.ParseFloat(s, 64)
+	return val
+}
+
+func (s *MarketService) GetPrice(
+	ctx context.Context,
+	symbol string,
+) (*stockapi.QuoteResponse, error) {
+
+	url := fmt.Sprintf(
+		"https://yahoo-finance15.p.rapidapi.com/api/v1/markets/quote?ticker=%s&type=STOCKS",
+		symbol,
+	)
+
+	req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req.Header.Set("x-rapidapi-host", "yahoo-finance15.p.rapidapi.com")
+	req.Header.Set("x-rapidapi-key", s.apiKey)
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var quote stockapi.QuoteResponse
+	if err := json.NewDecoder(resp.Body).Decode(&quote); err != nil {
+		return nil, err
+	}
+
+	s.cache.SetPrice(ctx, symbol, &quote)
+
+	price, err := parsePrice(quote.Body.PrimaryData.LastSalePrice)
+	if err == nil {
+		change := parseChange(quote.Body.PrimaryData.NetChange)
+
+		// Cache failure should NOT break price fetch
+		_ = s.stockCache.SetStockData(
+			symbol,
+			price,
+			change,
+		)
+	}
+
+	return &quote, nil
+}
+
+//this is the working one incase everything fails
+// func (s *MarketService) GetPrice(
+// 	ctx context.Context,
+// 	symbol string,
+// ) (*stockapi.QuoteResponse, error) {
+
+// 	if cached, ok := s.cache.GetPrice(ctx, symbol); ok {
+// 		return cached, nil
+// 	}
+
+// 	url := fmt.Sprintf(
+// 		"https://yahoo-finance15.p.rapidapi.com/api/v1/markets/quote?ticker=%s&type=STOCKS",
+// 		symbol,
+// 	)
+
+// 	req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
+// 	req.Header.Set("x-rapidapi-host", "yahoo-finance15.p.rapidapi.com")
+// 	req.Header.Set("x-rapidapi-key", s.apiKey)
+
+// 	resp, err := s.client.Do(req)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	defer resp.Body.Close()
+
+// 	var quote stockapi.QuoteResponse
+// 	if err := json.NewDecoder(resp.Body).Decode(&quote); err != nil {
+// 		return nil, err
+// 	}
+
+// 	s.cache.SetPrice(ctx, symbol, &quote)
+// 	return &quote, nil
+// }
+
+// func (s *MarketService) GetPrice(
+// 	ctx context.Context,
+// 	symbol string,
+// ) (*stockapi.QuoteResponse, error) {
+
+// 	//  Cache first
+// 	if cached, ok := s.cache.GetPrice(ctx, symbol); ok {
+// 		return cached, nil
+// 	}
+
+// 	//  Build request
+// 	url := fmt.Sprintf(
+// 		"https://yahoo-finance15.p.rapidapi.com/api/v1/markets/quote?ticker=%s&type=STOCKS",
+// 		symbol,
+// 	)
+
+// 	req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
+// 	req.Header.Set("x-rapidapi-host", "yahoo-finance15.p.rapidapi.com")
+// 	req.Header.Set("x-rapidapi-key", s.apiKey)
+
+// 	//  Execute request
+// 	resp, err := s.client.Do(req)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	defer resp.Body.Close()
+
+// 	//  READ RAW RESPONSE
+// 	raw, _ := io.ReadAll(resp.Body)
+// 	fmt.Println("RAW RESPONSE:", string(raw))
+
+// 	// Decode correctly
+// 	var quote stockapi.QuoteResponse
+// 	if err := json.Unmarshal(raw, &quote); err != nil {
+// 		return nil, err
+// 	}
+
+// 	// Cache & return
+// 	s.cache.SetPrice(ctx, symbol, &quote)
+// 	return &quote, nil
+// }
+
+func (s *MarketService) GetPrices(
+	ctx context.Context,
+	symbols []string,
+) map[string]*stockapi.QuoteResponse {
+
+	type result struct {
+		symbol string
+		quote  *stockapi.QuoteResponse
+	}
+
+	ch := make(chan result)
+
+	for _, sym := range symbols {
+		go func(symbol string) {
+			q, err := s.GetPrice(ctx, symbol)
+			if err != nil {
+				ch <- result{symbol, nil}
+				return
+			}
+			ch <- result{symbol, q}
+		}(sym)
+	}
+
+	results := make(map[string]*stockapi.QuoteResponse)
+
+	for range symbols {
+		res := <-ch
+		if res.quote != nil {
+			results[res.symbol] = res.quote
+		}
+	}
+
+	return results
+}
+
+func (s *MarketService) StartPriceStream(
+	ctx context.Context,
+	symbols []string,
+	interval time.Duration,
+) <-chan map[string]*stockapi.QuoteResponse {
+
+	out := make(chan map[string]*stockapi.QuoteResponse)
+
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		defer close(out)
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				prices := s.GetPrices(ctx, symbols)
+				out <- prices
+			}
+		}
+	}()
+
+	return out
+}
+
+// func (s *MarketService) RunAutoUpdater(
+// 	symbols []string,
+// 	interval time.Duration,
+// ) {
+
+// 	go func() {
+// 		ticker := time.NewTicker(interval)
+// 		defer ticker.Stop()
+
+// 		for range ticker.C {
+// 			ctx := context.Background()
+
+// 			for _, symbol := range symbols {
+// 				quote, err := s.GetPrice(ctx, symbol)
+// 				if err != nil {
+// 					continue
+// 				}
+// 				s.cache.SetPrice(ctx, symbol, quote)
+// 			}
+// 		}
+// 	}()
+// }
+
+func (s *MarketService) GetMarketNews(ctx context.Context, ticker string) (*stockapi.NewsResponse, error) {
+	key := "news:" + ticker
+
+	var cached stockapi.NewsResponse
+	if s.cache.Get(ctx, key, &cached) {
+		return &cached, nil
+	}
+
+	url := fmt.Sprintf(
+		"https://yahoo-finance15.p.rapidapi.com/api/v2/markets/news?ticker=%s&type=ALL",
+		ticker,
+	)
+
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Set("x-rapidapi-host", "yahoo-finance15.p.rapidapi.com")
+	req.Header.Set("x-rapidapi-key", s.apiKey)
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var data stockapi.NewsResponse
+	json.NewDecoder(resp.Body).Decode(&data)
+
+	s.cache.Set(ctx, key, &data, 60*time.Second)
+	return &data, nil
+}
+
+func (s *MarketService) GetQuote(ctx context.Context, ticker string) (*stockapi.MarketTickerResponse, error) {
+	key := "quote:" + ticker
+
+	var cached stockapi.MarketTickerResponse
+	if s.cache.Get(ctx, key, &cached) {
+		return &cached, nil
+	}
+
+	url := fmt.Sprintf(
+		"https://yahoo-finance15.p.rapidapi.com/api/v1/markets/quote?ticker=%s&type=STOCKS",
+		ticker,
+	)
+
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Set("x-rapidapi-host", "yahoo-finance15.p.rapidapi.com")
+	req.Header.Set("x-rapidapi-key", s.apiKey)
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var data stockapi.MarketTickerResponse
+	json.NewDecoder(resp.Body).Decode(&data)
+
+	s.cache.Set(ctx, key, &data, 20*time.Second)
+	return &data, nil
+}
+
+## FILE: backend\internal\services\networth_service.go
+--------------------------------------------------------------------------------
+package services
+
+import (
+	"context"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/models"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/repositories/interfaces"
+)
+
+type NetworthService struct {
+	networthRepo interfaces.NetworthRepository
+	userRepo     interfaces.UserRepository
+	portfolioSvc *PortfolioService
+	expenseSvc   *ExpenseService
+}
+
+func NewNetworthService(
+	networthRepo interfaces.NetworthRepository,
+	userRepo interfaces.UserRepository,
+	portfolioSvc *PortfolioService,
+	expenseSvc *ExpenseService,
+) *NetworthService {
+	return &NetworthService{
+		networthRepo: networthRepo,
+		userRepo:     userRepo,
+		portfolioSvc: portfolioSvc,
+		expenseSvc:   expenseSvc,
+	}
+}
+
+func (s *NetworthService) RecalculateNetworth(
+	ctx context.Context,
+	userID uuid.UUID,
+) (*models.NetWorthBreakdown, error) {
+
+	user, err := s.userRepo.GetUserByID(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	cash := decimal.NewFromFloat(user.Fake_Balance)
+
+	portfolioValue, totalInvested, err :=
+		s.portfolioSvc.GetPortfolioMetrics(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	totalExpenses, err :=
+		s.expenseSvc.GetTotalExpenses(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	current := portfolioValue.
+		Add(cash).
+		Sub(totalExpenses)
+
+	now := time.Now().UTC()
+
+	breakdown := &models.NetWorthBreakdown{
+		UserID:          userID,
+		PortfolioValue:  portfolioValue,
+		CashBalance:     cash,
+		TotalExpenses:   totalExpenses,
+		TotalInvested:   totalInvested,
+		CurrentNetWorth: current,
+		UpdatedAt:       now,
+	}
+
+	if err := s.networthRepo.SaveBreakdown(breakdown); err != nil {
+		return nil, err
+	}
+
+	if err := s.networthRepo.SaveNetworth(&models.Networth{
+		UserID: userID,
+		Total:  current.InexactFloat64(),
+	}); err != nil {
+		return nil, err
+	}
+
+	if err := s.networthRepo.SaveNetWorthHistory(&models.NetWorthHistory{
+		UserID:    userID,
+		NetWorth:  current,
+		Timestamp: now,
+	}); err != nil {
+		return nil, err
+	}
+
+	return breakdown, nil
+}
+
+func (s *NetworthService) GetLatestNetworth(
+	ctx context.Context,
+	userID uuid.UUID,
+) (*models.Networth, error) {
+	return s.networthRepo.GetLatestNetworth(userID)
+}
+
+func (s *NetworthService) GetNetworthHistory(
+	ctx context.Context,
+	userID uuid.UUID,
+) ([]models.Networth, error) {
+	return s.networthRepo.GetNetworthHistory(userID)
+}
+
+func (s *NetworthService) GetNetworthBreakdown(
+	ctx context.Context,
+	userID uuid.UUID,
+) (*models.NetWorthBreakdown, error) {
+	return s.networthRepo.GetBreakdown(userID)
+}
+
+## FILE: backend\internal\services\planned_expense_service.go
+--------------------------------------------------------------------------------
+package services
+
+import (
+	"context"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/models"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/repositories/interfaces"
+)
+
+type PlannedExpenseService struct {
+	plannedRepo interfaces.PlannedExpenseRepository
+}
+
+func NewPlannedExpenseService(
+	plannedRepo interfaces.PlannedExpenseRepository,
+) *PlannedExpenseService {
+	return &PlannedExpenseService{
+		plannedRepo: plannedRepo,
+	}
+}
+
+func (s *PlannedExpenseService) CreatePlan(
+	ctx context.Context,
+	userID uuid.UUID,
+	title string,
+	amount decimal.Decimal,
+	note string,
+	date time.Time,
+) error {
+	plan := &models.PlannedExpense{
+		ID:        uuid.New(),
+		UserID:    userID,
+		Title:     title,
+		Amount:    amount,
+		Note:      note,
+		Date:      date,
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+	}
+
+	return s.plannedRepo.CreatePlan(plan)
+}
+
+func (s *PlannedExpenseService) Getplans(
+	ctx context.Context,
+	userID uuid.UUID,
+) ([]models.PlannedExpense, error) {
+	return s.plannedRepo.GetPlansByUser(userID)
+}
+
+func (s *PlannedExpenseService) DeletePlan(
+	ctx context.Context,
+	userID uuid.UUID,
+	planID uuid.UUID,
+) error {
+	return s.plannedRepo.DeletePlan(userID, planID)
+}
+
+## FILE: backend\internal\services\portfolio_service.go
+--------------------------------------------------------------------------------
+package services
+
+import (
+	"context"
+
+	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/cache"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/models"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/repositories/interfaces"
+)
+
+type PortfolioService struct {
+	protfolioRepo interfaces.PortfolioRepository
+	stockCache    *cache.StockCache
+}
+
+func NewPortfolioService(
+	protfolioRepo interfaces.PortfolioRepository,
+	stockCache *cache.StockCache,
+) *PortfolioService {
+	return &PortfolioService{
+		protfolioRepo: protfolioRepo,
+		stockCache:    stockCache,
+	}
+}
+
+// this is for listing just uses the code in the pgx portfolioRepo
+func (s *PortfolioService) GetPortfolio(
+	ctx context.Context,
+	userID uuid.UUID) ([]models.PortfolioItem, error) {
+	return s.protfolioRepo.GetPortfolio(userID)
+}
+
+//aggregation function
+//getPortfolioMetrics calculates market value and invested amount
+
+func (s *PortfolioService) GetPortfolioMetrics(
+	ctx context.Context,
+	userID uuid.UUID,
+) (portfolioValue decimal.Decimal, totalInvested decimal.Decimal, err error) {
+
+	items, err := s.protfolioRepo.GetPortfolio(userID)
+	if err != nil {
+		return decimal.Zero, decimal.Zero, err
+	}
+
+	for _, item := range items {
+		price, err := s.stockCache.GetPrice(item.StockSymbol)
+		if err != nil {
+			continue
+		}
+
+		qty := decimal.NewFromInt(int64(item.Quantity))
+		marketValue := qty.Mul(decimal.NewFromFloat(price))
+		invested := qty.Mul(decimal.NewFromFloat(item.AvgPrice))
+
+		portfolioValue = portfolioValue.Add(marketValue)
+		totalInvested = totalInvested.Add(invested)
+	}
+	return portfolioValue, totalInvested, nil
+}
+
+func (s *PortfolioService) BuyStock(
+	ctx context.Context,
+	item *models.PortfolioItem,
+) error {
+	return s.protfolioRepo.BuyStock(item)
+}
+
+func (s *PortfolioService) SellStock(
+	ctx context.Context,
+	userID uuid.UUID,
+	stockSymbol string,
+	quantity int,
+) error {
+	return s.protfolioRepo.SellStock(userID, stockSymbol, quantity)
+}
+
+## FILE: backend\internal\services\transaction_service.go
+--------------------------------------------------------------------------------
+package services
+
+import (
+	"context"
+	"errors"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/cache"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/models"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/repositories/interfaces"
+)
+
+type TransactionService struct {
+	userRepo        interfaces.UserRepository
+	portfolioRepo   interfaces.PortfolioRepository
+	transactionRepo interfaces.TransactionRepository
+	stockCache      *cache.StockCache
+	networthService *NetworthService
+}
+
+// this is the constructor or dependency
+func NewTransactionService(
+	userRepo interfaces.UserRepository,
+	portfolioRepo interfaces.PortfolioRepository,
+	transactionRepo interfaces.TransactionRepository,
+	stockCache *cache.StockCache,
+	networthService *NetworthService,
+) *TransactionService {
+	return &TransactionService{
+		userRepo:        userRepo,
+		portfolioRepo:   portfolioRepo,
+		transactionRepo: transactionRepo,
+		stockCache:      stockCache,
+		networthService: networthService,
+	}
+}
+
+func (s *TransactionService) Buy(
+	ctx context.Context,
+	userID uuid.UUID,
+	symbol string,
+	qty decimal.Decimal,
+) error {
+
+	if qty.LessThanOrEqual(decimal.Zero) {
+		return errors.New("invalid quantity")
+	}
+
+	//get live prices heheh
+	priceFloat, err := s.stockCache.GetPrice(symbol)
+	if err != nil {
+		return errors.New("price unavailable")
+	}
+
+	price := decimal.NewFromFloat(priceFloat)
+	total := price.Mul(qty)
+
+	//fake balance is deducted here
+	if err := s.userRepo.DeductFakeBalance(userID, total.InexactFloat64()); err != nil {
+		return errors.New("insufficient balance")
+	}
+
+	//we update the portfolio
+	if err := s.portfolioRepo.BuyStock(&models.PortfolioItem{
+		UserID:      userID,
+		StockSymbol: symbol,
+		Quantity:    int(qty.IntPart()),
+		AvgPrice:    priceFloat,
+	}); err != nil {
+		return err
+	}
+
+	//persist transaction
+	tx := &models.Transaction{
+		ID:        uuid.New(),
+		User_ID:   userID,
+		Symbol:    symbol,
+		Side:      models.SideBuy,
+		Price:     price,
+		Quantity:  qty,
+		Total:     total,
+		CreatedAt: time.Now().UTC(),
+	}
+
+	if err := s.transactionRepo.AddTransaction(tx); err != nil {
+		return err
+	}
+
+	go s.networthService.RecalculateNetworth(ctx, userID)
+
+	return nil
+}
+
+//sell stock service
+
+func (s *TransactionService) Sell(
+	ctx context.Context,
+	userID uuid.UUID,
+	symbol string,
+	qty decimal.Decimal,
+) error {
+
+	if qty.LessThanOrEqual(decimal.Zero) {
+		return errors.New("invalid quantity")
+	}
+
+	holding, err := s.portfolioRepo.GetStockHolding(userID, symbol)
+	if err != nil || holding.Quantity < int(qty.IntPart()) {
+		return errors.New("not enough holdings")
+	}
+
+	priceFloat, err := s.stockCache.GetPrice(symbol)
+	if err != nil {
+		return errors.New("price unavailabe")
+	}
+
+	price := decimal.NewFromFloat(priceFloat)
+	total := price.Mul(qty)
+
+	//update the portfolio
+	if err := s.portfolioRepo.SellStock(
+		userID,
+		symbol,
+		int(qty.IntPart()),
+	); err != nil {
+		return err
+	}
+
+	if err := s.userRepo.IncrementFakeBalance(
+		userID,
+		total.InexactFloat64(),
+	); err != nil {
+		return err
+	}
+
+	//persist transaction that is the
+	// transaction that will be saved
+	tx := &models.Transaction{
+		ID:        uuid.New(),
+		User_ID:   userID,
+		Symbol:    symbol,
+		Side:      models.SideSell,
+		Price:     price,
+		Quantity:  qty,
+		Total:     total,
+		CreatedAt: time.Now().UTC(),
+	}
+
+	if err := s.transactionRepo.AddTransaction(tx); err != nil {
+		return err
+	}
+
+	//we use goroutine here to recalculate the networth
+	// in the background its executes successfully
+	go s.networthService.RecalculateNetworth(ctx, userID)
+
+	return nil
+}
+
+func (s *TransactionService) GetTransactions(
+	ctx context.Context,
+	userID uuid.UUID,
+) ([]models.Transaction, error) {
+	return s.transactionRepo.GetTransaction(userID)
+}
+
+## FILE: backend\internal\services\user_service.go
+--------------------------------------------------------------------------------
+package services
+
+import (
+	"context"
+	"errors"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/models"
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/repositories/interfaces"
+)
+
+type UserService struct {
+	userRepo interfaces.UserRepository
+}
+
+func NewUserService(
+	userRepo interfaces.UserRepository,
+) *UserService {
+	return &UserService{
+		userRepo: userRepo,
+	}
+}
+
+// fake balance every user will initially have
+const InitialFakeBalance = 10000
+
+//user life cycle that performing different operations for the users
+
+// createUser this creates a new user with initial fake balance
+func (s *UserService) CreateUser(
+	ctx context.Context,
+	email string,
+	fullName string,
+	avatarUrl string,
+	googleID string,
+) (*models.User, error) {
+
+	//checking is user already exists
+	// existing, err := s.userRepo.GetUserByGoogleID(googleID)
+	// if err == nil && existing != nil {
+	// 	return existing, nil
+	// }
+
+	now := time.Now().UTC()
+
+	user := &models.User{
+		ID:        uuid.New(),
+		Email:     email,
+		FullName:  fullName,
+		AvatarURL: avatarUrl,
+		//	GoogleID:     googleID,
+		Fake_Balance: InitialFakeBalance,
+		IsAdmin:      false,
+		CreatedAt:    now,
+		UpdatedAt:    now,
+	}
+	// we are calling the function in the pgx query folder here after assigining the values
+	// to user variable and of type models.User{} so yeahh its kinda easy but having errors in the
+	// pgx folder will break everything so it is the most important folder
+
+	if err := s.userRepo.CreateUser(user); err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (s *UserService) GetUserByID(
+	ctx context.Context,
+	userID uuid.UUID,
+) (*models.User, error) {
+	return s.userRepo.GetUserByID(userID)
+}
+
+func (s *UserService) GetUserByEmail(
+	ctx context.Context,
+	email string,
+) (*models.User, error) {
+	return s.userRepo.GetUserByEmail(email)
+}
+
+// func (s *UserService) GetUserByGoogleID(
+// 	ctx context.Context,
+// 	googleID string,
+// ) (*models.User, error) {
+// 	return s.userRepo.GetUserByGoogleID(googleID)
+// }
+
+func (s *UserService) DeductFakeBalance(
+	ctx context.Context,
+	userID uuid.UUID,
+	amount float64,
+) error {
+	if amount <= 0 {
+		return errors.New("invalid amount")
+	}
+	return s.userRepo.DeductFakeBalance(userID, amount)
+}
+
+func (s *UserService) IncrementFakeBalance(
+	ctx context.Context,
+	userID uuid.UUID,
+	amount float64,
+) error {
+	if amount <= 0 {
+		return errors.New("invalid amount")
+	}
+
+	return s.userRepo.IncrementFakeBalance(userID, amount)
+}
+
+func (s *UserService) UpdateUser(
+	ctx context.Context,
+	user *models.User,
+) (*models.User, error) {
+
+	existing, err := s.userRepo.GetUserByID(user.ID)
+	if err != nil {
+		return nil, errors.New("user not found")
+	}
+
+	if user.FullName != "" {
+		existing.FullName = user.FullName
+	}
+	if user.AvatarURL != "" {
+		existing.AvatarURL = user.AvatarURL
+	}
+
+	if existing.FullName == "" {
+		return nil, errors.New("full name cannot be empty")
+	}
+
+	existing.UpdatedAt = time.Now().UTC()
+
+	if err := s.userRepo.UpdateUser(existing); err != nil {
+		return nil, err
+	}
+
+	return existing, nil
+}
+
+## FILE: backend\internal\stockapi\client.go
+--------------------------------------------------------------------------------
+package stockapi
+
+// // price data represents live stock data
+// type PriceData struct {
+// 	Symbol    string
+// 	Price     float64
+// 	Change    float64
+// 	Volume    int64
+// 	Sector    string
+// 	Timestamp time.Time
+// }
+
+// // newsitem represent a news article
+// type NewsItem struct {
+// 	Title       string
+// 	Publisher   string
+// 	Link        string
+// 	Summary     string
+// 	PublishedAt time.Time
+// 	Tickers     []string
+// }
+
+// // CompanyProfile represents basic company information
+// type CompanyProfile struct {
+// 	Symbol      string `json:"symbol"`
+// 	Name        string `json:"longName"`
+// 	ShortName   string `json:"shortName"`
+// 	Sector      string `json:"sector"`
+// 	Industry    string `json:"industry"`
+// 	Description string `json:"longBusinessSummary"`
+// 	Website     string `json:"website"`
+// 	Country     string `json:"country"`
+// 	Currency    string `json:"currency"`
+// 	Employees   int64  `json:"fullTimeEmployees"`
+// 	Exchange    string `json:"exchange"`
+// 	MarketCap   int64  `json:"marketCap"`
+// }
+
+// // FinancialReport represents key financial metrics of a company
+// type FinancialReport struct {
+// 	Symbol string `json:"symbol"`
+
+// 	// Valuation
+// 	MarketCap   int64   `json:"marketCap"`
+// 	TrailingPE  float64 `json:"trailingPE"`
+// 	ForwardPE   float64 `json:"forwardPE"`
+// 	PriceToBook float64 `json:"priceToBook"`
+
+// 	// Profitability
+// 	Revenue          int64   `json:"totalRevenue"`
+// 	RevenueGrowth    float64 `json:"revenueGrowth"`
+// 	EarningsGrowth   float64 `json:"earningsGrowth"`
+// 	ProfitMargins    float64 `json:"profitMargins"`
+// 	OperatingMargins float64 `json:"operatingMargins"`
+// 	ReturnOnEquity   float64 `json:"returnOnEquity"`
+
+// 	// Balance sheet
+// 	TotalCash    int64   `json:"totalCash"`
+// 	TotalDebt    int64   `json:"totalDebt"`
+// 	DebtToEquity float64 `json:"debtToEquity"`
+
+// 	// Cash flow
+// 	FreeCashFlow      int64 `json:"freeCashflow"`
+// 	OperatingCashFlow int64 `json:"operatingCashflow"`
+// }
+
+type Client interface {
+	//for prices
+	GetPrice(symbol string) (*PriceData, error)
+	GetPrices(symbols []string) ([]PriceData, error)
+	PriceStream(symbols []string) (<-chan PriceData, error)
+
+	// Search
+	SearchIndustry(query string) ([]Industry, error)
+	SearchMutualFund(query string) ([]MutualFund, error)
+
+	// Mutual funds
+	//	GetAllMutualFunds() ([]MutualFund, error)
+
+	// Market data
+	GetCommodities() ([]Commodity, error)
+	GetTrendingStocks() ([]TrendingStock, error)
+	GetPriceShockers() ([]PriceShocker, error)
+
+	// Active stocks
+	GetNSEMostActive() ([]ActiveStock, error)
+	GetBSEMostActive() ([]ActiveStock, error)
+
+	// Stock intelligence
+	GetStockTargetPrice(stockID string) ([]TargetPrice, error)
+	GetCorporateActions(stock string) ([]CorporateAction, error)
+
+	// Historical
+	GetHistoricalPrices(stock string, period string) ([]HistoricalPrice, error)
+	GetHistoricalStats(stock string, stats string) ([]HistoricalStat, error)
+
+	// Forecast
+	GetStockForecast(
+		stockID string,
+		measureCode string,
+		periodType string,
+		dataType string,
+		age string,
+	) ([]Forecast, error)
+
+	// IPO
+	GetIPOList() ([]IPO, error)
+
+	// 52 week
+	//	Get52WeekHighLow() ([]Week52Data, error)
+
+	GetRSI(
+		symbol string,
+		interval string,
+		seriesType string,
+		timePeriod int,
+		limit int,
+	) (*RSIResponse, error)
+
+	GetSMA(
+		symbol string,
+		interval string,
+		seriesType string,
+		timePeriod int,
+		limit int,
+	) (*SMAResponse, error)
+}
+
+type IndicatorClient interface {
+	GetRSI(
+		symbol string,
+		interval string,
+		seriesType string,
+		timePeriod int,
+		limit int,
+	) (*RSIResponse, error)
+
+	GetSMA(
+		symbol string,
+		interval string,
+		seriesType string,
+		timePeriod int,
+		limit int,
+	) (*SMAResponse, error)
+}
+
+## FILE: backend\internal\stockapi\company_Profile.go
+--------------------------------------------------------------------------------
+package stockapi
+
+import (
+	"encoding/json"
+	"errors"
+	"io"
+	"net/http"
+	"net/url"
+	"time"
+)
+
+type IndianStockClient struct {
+	apiKey string
+	client *http.Client
+}
+
+func NewIndianStockClient(apiKey string) *IndianStockClient {
+	return &IndianStockClient{
+		apiKey: apiKey,
+		client: &http.Client{Timeout: 10 * time.Second},
+	}
+}
+
+// RAW response (no struct)
+func (c *IndianStockClient) GetStockByNameRaw(name string) (json.RawMessage, error) {
+	if name == "" {
+		return nil, errors.New("stock name required")
+	}
+
+	req, err := http.NewRequest(
+		http.MethodGet,
+		"https://indian-stock-exchange-api2.p.rapidapi.com/stock?name="+url.QueryEscape(name),
+		nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("x-rapidapi-host", "indian-stock-exchange-api2.p.rapidapi.com")
+	req.Header.Set("x-rapidapi-key", c.apiKey)
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate JSON (optional but recommended)
+	var raw json.RawMessage
+	if err := json.Unmarshal(body, &raw); err != nil {
+		return nil, err
+	}
+
+	return raw, nil
+}
+
+## FILE: backend\internal\stockapi\forcast.go
+--------------------------------------------------------------------------------
+package stockapi
+
+import "fmt"
+
+func (c *RapidApiClient) GetStockForecast(
+	stockID string,
+	measureCode string,
+	periodType string,
+	dataType string,
+	age string,
+) ([]Forecast, error) {
+
+	var resp struct {
+		Data []Forecast `json:"data"`
+	}
+
+	path := fmt.Sprintf(
+		"/stock_forecasts?stock_id=%s&measure_code=%s&period_type=%s&data_type=%s&age=%s",
+		stockID, measureCode, periodType, dataType, age,
+	)
+
+	err := c.doRequest(path, &resp)
+	return resp.Data, err
+}
+
+## FILE: backend\internal\stockapi\heatData.go
+--------------------------------------------------------------------------------
+package stockapi
+
+import (
+	"fmt"
+
+	"github.com/the-onewho-knocks/finance-Simulation/backend/internal/models"
+)
+
+func (c *RapidApiClient) GetMarketTickersRaw(
+	page int,
+) (*models.MarketTickersResponse, error) {
+
+	path := fmt.Sprintf(
+		"/api/v2/markets/tickers?page=%d&type=STOCKS",
+		page,
+	)
+
+	var resp models.MarketTickersResponse
+	if err := c.doRequest(path, &resp); err != nil {
+		return nil, err
+	}
+
+	return &resp, nil
+}
+
+## FILE: backend\internal\stockapi\history.go
+--------------------------------------------------------------------------------
+package stockapi
+
+import (
+	"fmt"
+	"net/url"
+	"strconv"
+	"strings"
+)
+
+type rawHistroyResponse struct {
+	Datasets []struct {
+		Metric string  `json:"metric"`
+		Values [][]any `json:"Values"`
+	} `json:"datasets"`
+}
+
+type RawHistoricalStatsResponse map[string]map[string]any
+
+type HistoricalStats map[string]map[string]float64
+
+func (c *RapidApiClient) GetHistoricalPrices(
+	stock string,
+	period string,
+) ([]HistoricalPrice, error) {
+
+	var raw rawHistroyResponse
+
+	path := fmt.Sprintf(
+		"/historical_data?stock_name=%s&period=%s&filter=price",
+		url.QueryEscape(stock),
+		url.QueryEscape(period),
+	)
+
+	if err := c.doRequest(path, &raw); err != nil {
+		return nil, err
+	}
+
+	var prices []HistoricalPrice
+
+	for _, dataset := range raw.Datasets {
+		if dataset.Metric != "Price" {
+			continue
+		}
+
+		for _, row := range dataset.Values {
+			if len(row) < 2 {
+				continue
+			}
+
+			date, ok := row[0].(string)
+			if !ok {
+				continue
+			}
+
+			priceStr, ok := row[1].(string)
+			if !ok {
+				continue
+			}
+
+			price, err := strconv.ParseFloat(priceStr, 64)
+			if err != nil {
+				continue
+			}
+
+			prices = append(prices, HistoricalPrice{
+				Date:  date,
+				Close: price,
+			})
+		}
+	}
+
+	if prices == nil {
+		prices = []HistoricalPrice{}
+	}
+
+	return prices, nil
+}
+
+func (c *RapidApiClient) GetHistoricalStats(
+	stock string,
+	stats string,
+) (HistoricalStats, error) {
+
+	var raw RawHistoricalStatsResponse
+
+	path := fmt.Sprintf(
+		"/historical_stats?stock_name=%s&stats=%s",
+		url.QueryEscape(stock),
+		url.QueryEscape(stats),
+	)
+
+	if err := c.doRequest(path, &raw); err != nil {
+		return nil, err
+	}
+
+	result := make(HistoricalStats)
+
+	for metric, periods := range raw {
+		key := normalizeKey(metric)
+		result[key] = make(map[string]float64)
+
+		for period, value := range periods {
+			var val float64
+
+			switch v := value.(type) {
+
+			case float64:
+				// JSON number → already float64
+				val = v
+
+			case string:
+				// Handle "64,259" style strings
+				v = strings.ReplaceAll(v, ",", "")
+				parsed, err := strconv.ParseFloat(v, 64)
+				if err != nil {
+					continue
+				}
+				val = parsed
+
+			default:
+				continue
+			}
+
+			result[key][period] = val
+		}
+	}
+
+	return result, nil
+}
+
+func normalizeKey(s string) string {
+	s = strings.ToLower(s)
+	s = strings.TrimSpace(s)
+	s = strings.ReplaceAll(s, " ", "_")
+	s = strings.ReplaceAll(s, "%", "percent")
+	return s
+}
+
+## FILE: backend\internal\stockapi\indianRapidAPI.go
+--------------------------------------------------------------------------------
+package stockapi
+
+import (
+	"encoding/json"
+	"errors"
+	"net/http"
+	"time"
+)
+
+type IndianRapidApiClient struct {
+	httpClient *http.Client
+	apiKey     string
+	baseUrl    string
+}
+
+func NewRapidAPIClient(apiKey string) *IndianRapidApiClient {
+	return &IndianRapidApiClient{
+		httpClient: &http.Client{Timeout: 10 * time.Second},
+		apiKey:     apiKey,
+		baseUrl:    "https://indian-stock-exchange-api2.p.rapidapi.com",
+	}
+}
+
+func (c *IndianRapidApiClient) doRequest(path string, result interface{}) error {
+	req, err := http.NewRequest("GET", c.baseUrl+path, nil)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("x-rapidapi-key", c.apiKey)
+	req.Header.Set("x-rapidapi-host", "indian-stock-exchange-api2.p.rapidapi.com")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.New("rapidapi request failed")
+	}
+
+	return json.NewDecoder(resp.Body).Decode(result)
+}
+
+## FILE: backend\internal\stockapi\indicator.go
+--------------------------------------------------------------------------------
+package stockapi
+
+import (
+	"fmt"
+	"net/url"
+)
+
+//sma
+
+type SMAResponse struct {
+	ProcessedTime string     `json:"processedTime"`
+	Symbol        string     `json:"symbol"`
+	Interval      string     `json:"interval"`
+	SeriesType    string     `json:"series_type"`
+	Indicator     string     `json:"indicator"`
+	TimePeriod    string     `json:"time_period"`
+	Version       string     `json:"version"`
+	Status        int        `json:"status"`
+	Copywrite     string     `json:"copywrite"`
+	Body          []SMAPoint `json:"body"`
+}
+
+type SMAPoint struct {
+	Timestamp int64   `json:"timestamp"`
+	SMA       float64 `json:"SMA"`
+}
+
+// rsi
+type RSIResponse struct {
+	ProcessedTime string     `json:"processedTime"`
+	Symbol        string     `json:"symbol"`
+	Interval      string     `json:"interval"`
+	SeriesType    string     `json:"series_type"`
+	Indicator     string     `json:"indicator"`
+	TimePeriod    string     `json:"time_period"`
+	Version       string     `json:"version"`
+	Status        int        `json:"status"`
+	Copywrite     string     `json:"copywrite"`
+	Body          []RSIPoint `json:"body"`
+}
+
+type RSIPoint struct {
+	Timestamp int64   `json:"timestamp"`
+	RSI       float64 `json:"RSI"`
+}
+
+func (c *RapidApiClient) GetSMA(
+	symbol string,
+	interval string,
+	seriesType string,
+	timePeriod int,
+	limit int,
+) (*SMAResponse, error) {
+
+	path := fmt.Sprintf(
+		"/api/v1/markets/indicators/sma?symbol=%s&interval=%s&series_type=%s&time_period=%d&limit=%d",
+		url.QueryEscape(symbol),
+		url.QueryEscape(interval),
+		url.QueryEscape(seriesType),
+		timePeriod,
+		limit,
+	)
+
+	var resp SMAResponse
+	if err := c.doRequest(path, &resp); err != nil {
+		return nil, err
+	}
+
+	return &resp, nil
+}
+
+// -------- RSI --------
+
+func (c *RapidApiClient) GetRSI(
+	symbol string,
+	interval string,
+	seriesType string,
+	timePeriod int,
+	limit int,
+) (*RSIResponse, error) {
+
+	path := fmt.Sprintf(
+		"/api/v1/markets/indicators/rsi?symbol=%s&interval=%s&series_type=%s&time_period=%d&limit=%d",
+		url.QueryEscape(symbol),
+		url.QueryEscape(interval),
+		url.QueryEscape(seriesType),
+		timePeriod,
+		limit,
+	)
+
+	var resp RSIResponse
+	if err := c.doRequest(path, &resp); err != nil {
+		return nil, err
+	}
+
+	return &resp, nil
+}
+
+## FILE: backend\internal\stockapi\ipo.go
+--------------------------------------------------------------------------------
+package stockapi
+
+func (c *RapidApiClient) GetIPOList() ([]IPO, error) {
+	var resp struct {
+		Data []IPO `json:"data"`
+	}
+
+	err := c.doRequest("/ipo", &resp)
+	return resp.Data, err
+}
+
+## FILE: backend\internal\stockapi\market.go
+--------------------------------------------------------------------------------
+package stockapi
+
+type MarketMeta struct {
+	Version     string `json:"version"`
+	Status      int    `json:"status"`
+	Copywrite   string `json:"copywrite"`
+	TotalRecord int    `json:"totalrecords"`
+}
+
+type MarketTicker struct {
+	Symbol    string `json:"symbol"`
+	Name      string `json:"name"`
+	LastSale  string `json:"lastsale"`
+	NetChange string `json:"netchange"`
+	PctChange string `json:"pctchange"`
+	MarketCap string `json:"marketCap"`
+}
+
+type MarketTickerResponse struct {
+	Meta MarketMeta     `json:"meta"`
+	Body []MarketTicker `json:"body"`
+}
+
+// NEWS
+
+type NewsResponse struct {
+	Meta MarketMeta `json:"meta"`
+	Data []struct {
+		Title     string `json:"title"`
+		Link      string `json:"link"`
+		Publisher string `json:"publisher"`
+		Summary   string `json:"summary"`
+		PubDate   string `json:"pubDate"`
+	} `json:"data"`
+}
+
+// type QuoteResponse struct {
+// 	Meta struct {
+// 		Version string `json:"version"`
+// 		Status  int    `json:"status"`
+// 	} `json:"meta"`
+
+// 	Body struct {
+// 		Symbol       string `json:"symbol"`
+// 		CompanyName string `json:"companyName"`
+// 		MarketStatus string `json:"marketStatus"`
+
+// 		PrimaryData struct {
+// 			LastSalePrice    string `json:"lastSalePrice"`
+// 			NetChange        string `json:"netChange"`
+// 			PercentageChange string `json:"percentageChange"`
+// 			IsRealTime       bool   `json:"isRealTime"`
+// 			Volume           string `json:"volume"`
+// 		} `json:"primaryData"`
+// 	} `json:"body"`
+// }
+
+type QuoteResponse struct {
+	Meta Meta      `json:"meta"`
+	Body QuoteBody `json:"body"`
+}
+
+type Meta struct {
+	Version   string `json:"version"`
+	Status    int    `json:"status"`
+	Copywrite string `json:"copywrite"`
+}
+
+type QuoteBody struct {
+	Symbol       string `json:"symbol"`
+	CompanyName  string `json:"companyName"`
+	MarketStatus string `json:"marketStatus"`
+
+	PrimaryData PrimaryData `json:"primaryData"`
+}
+
+type PrimaryData struct {
+	LastSalePrice    string `json:"lastSalePrice"`
+	NetChange        string `json:"netChange"`
+	PercentageChange string `json:"percentageChange"`
+	IsRealTime       bool   `json:"isRealTime"`
+	Volume           string `json:"volume"`
+}
+
+## FILE: backend\internal\stockapi\models.go
+--------------------------------------------------------------------------------
+package stockapi
+
+// type Industry map[string]interface{}
+// type MutualFund map[string]interface{}
+// type Commodity map[string]interface{}
+// type TrendingStock map[string]interface{}
+// type PriceShocker map[string]interface{}
+// type ActiveStock map[string]interface{}
+// type TargetPrice map[string]interface{}
+// type CorporateAction map[string]interface{}
+// type HistoricalPrice map[string]interface{}
+// type HistoricalStat map[string]interface{}
+// type Forecast map[string]interface{}
+// type IPO map[string]interface{}
+// type Week52Data map[string]interface{}
+
+// type PriceData struct {
+// 	Symbol    string
+// 	Price     float64
+// 	Change    float64
+// 	Volume    int64
+// 	Sector    string
+// 	Timestamp time.Time
+// }
+
+type PriceData struct {
+	Symbol        string  `json:"symbol"`
+	CompanyName   string  `json:"companyName"`
+	LastPrice     float64 `json:"lastPrice"`
+	Change        float64 `json:"change"`
+	PercentChange float64 `json:"percentChange"`
+	Open          float64 `json:"open"`
+	High          float64 `json:"high"`
+	Low           float64 `json:"low"`
+	PreviousClose float64 `json:"previousClose"`
+	Volume        int64   `json:"volume"`
+	Timestamp     string  `json:"timestamp"`
+}
+
+type Industry struct {
+	Industry string `json:"industry"`
+	Count    int    `json:"count"`
+}
+
+type MutualFund struct {
+	SchemeCode string `json:"scheme_code"`
+	SchemeName string `json:"scheme_name"`
+	FundHouse  string `json:"fund_house"`
+	Category   string `json:"category"`
+}
+
+type MutualFundDetail struct {
+	SchemeCode string `json:"scheme_code"`
+	SchemeName string `json:"scheme_name"`
+	Nav        string `json:"nav"`
+	Date       string `json:"date"`
+}
+
+type Commodity struct {
+	Name          string  `json:"name"`
+	LastPrice     float64 `json:"last_price"`
+	Change        float64 `json:"change"`
+	PercentChange float64 `json:"percent_change"`
+}
+
+type TrendingStock struct {
+	Symbol      string `json:"symbol"`
+	CompanyName string `json:"company_name"`
+}
+
+type PriceShocker struct {
+	Symbol        string  `json:"symbol"`
+	CompanyName   string  `json:"company_name"`
+	LastPrice     float64 `json:"last_price"`
+	PercentChange float64 `json:"percent_change"`
+	Category      string  `json:"category"` // gainer / loser
+}
+
+type ActiveStock struct {
+	Symbol      string  `json:"symbol"`
+	CompanyName string  `json:"company_name"`
+	Volume      int64   `json:"volume"`
+	LastPrice   float64 `json:"last_price"`
+}
+
+type TargetPrice struct {
+	BrokerName string  `json:"broker_name"`
+	Rating     string  `json:"rating"`
+	Target     float64 `json:"target_price"`
+	Upside     string  `json:"upside"`
+}
+
+type CorporateAction struct {
+	Company     string `json:"company"`
+	ActionType  string `json:"action_type"`
+	ExDate      string `json:"ex_date"`
+	RecordDate  string `json:"record_date"`
+	Description string `json:"description"`
+}
+
+type HistoricalPrice struct {
+	Date   string  `json:"date"`
+	Open   float64 `json:"open"`
+	High   float64 `json:"high"`
+	Low    float64 `json:"low"`
+	Close  float64 `json:"close"`
+	Volume int64   `json:"volume"`
+}
+
+type HistoricalStat struct {
+	Period string `json:"period"`
+	Metric string `json:"metric"`
+	Value  string `json:"value"`
+}
+
+type Forecast struct {
+	Year  string `json:"year"`
+	Value string `json:"value"`
+	Type  string `json:"type"` // Actual / Estimated
+}
+
+type IPO struct {
+	CompanyName string `json:"company_name"`
+	IssueSize   string `json:"issue_size"`
+	PriceBand   string `json:"price_band"`
+	OpenDate    string `json:"open_date"`
+	CloseDate   string `json:"close_date"`
+	Status      string `json:"status"`
+}
+
+type Week52Data struct {
+	Symbol       string  `json:"symbol"`
+	CompanyName  string  `json:"company_name"`
+	High52Week   float64 `json:"high_52_week"`
+	Low52Week    float64 `json:"low_52_week"`
+	CurrentPrice float64 `json:"current_price"`
+}
+
+## FILE: backend\internal\stockapi\mostactive.go
+--------------------------------------------------------------------------------
+package stockapi
+
+func (c *RapidApiClient) GetNSEMostActive() ([]ActiveStock, error) {
+	var resp struct {
+		Data []ActiveStock `json:"data"`
+	}
+
+	err := c.doRequest("/NSE_most_active", &resp)
+	return resp.Data, err
+}
+
+func (c *RapidApiClient) GetBSEMostActive() ([]ActiveStock, error) {
+	var resp struct {
+		Data []ActiveStock `json:"data"`
+	}
+
+	err := c.doRequest("/BSE_most_active", &resp)
+	return resp.Data, err
+}
+
+func (c *RapidApiClient) GetStockTargetPrice(stockID string) ([]TargetPrice, error) {
+	var resp struct {
+		Data []TargetPrice `json:"data"`
+	}
+
+	err := c.doRequest("/stock_target_price?stock_id="+stockID, &resp)
+	return resp.Data, err
+}
+
+func (c *RapidApiClient) GetCorporateActions(stock string) ([]CorporateAction, error) {
+	var resp struct {
+		Data []CorporateAction `json:"data"`
+	}
+
+	err := c.doRequest("/corporate_actions?stock_name="+stock, &resp)
+	return resp.Data, err
+}
+
+## FILE: backend\internal\stockapi\prices.go
+--------------------------------------------------------------------------------
+package stockapi
+
+import (
+	"fmt"
+	"net/url"
+	"strings"
+)
+
+func (c *RapidApiClient) GetPrice(symbol string) (*PriceData, error) {
+	var resp struct {
+		Data PriceData `json:"data"`
+	}
+
+	// Use QueryEscape to handle special characters in symbols
+	path := fmt.Sprintf("/price?symbol=%s", url.QueryEscape(symbol))
+
+	err := c.doRequest(path, &resp)
+	if err != nil {
+		return nil, err
+	}
+	return &resp.Data, nil
+}
+
+func (c *RapidApiClient) GetPrices(symbols []string) ([]PriceData, error) {
+	if len(symbols) == 0 {
+		return nil, nil // Return early if slice is empty
+	}
+
+	var resp struct {
+		Data []PriceData `json:"data"`
+	}
+
+	// Use strings.Join for cleaner, faster string concatenation
+	query := url.QueryEscape(strings.Join(symbols, ","))
+	path := fmt.Sprintf("/prices?symbols=%s", query)
+
+	err := c.doRequest(path, &resp)
+	if err != nil {
+		return nil, err // Return nil for data if error occurs
+	}
+
+	return resp.Data, nil
+}
+
+func (c *RapidApiClient) PriceStream(symbols []string) (<-chan PriceData, error) {
+	ch := make(chan PriceData)
+
+	go func() {
+		defer close(ch)
+
+		for {
+			prices, err := c.GetPrices(symbols)
+			if err != nil {
+				continue
+			}
+
+			for _, p := range prices {
+				ch <- p
+			}
+		}
+	}()
+
+	return ch, nil
+}
+
+## FILE: backend\internal\stockapi\rapidapi.go
+--------------------------------------------------------------------------------
+package stockapi
+
+import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"time"
+)
+
+type RapidApiClient struct {
+	apiKey  string
+	apiHost string
+	client  *http.Client
+}
+
+func NewRapidApiClient(apiKey, apiHost string) *RapidApiClient {
+	return &RapidApiClient{
+		apiKey:  apiKey,
+		apiHost: apiHost,
+		client: &http.Client{
+			Timeout: 10 * time.Second,
+		},
+	}
+}
+
+func (c *RapidApiClient) doRequest(path string, out any) error {
+	url := fmt.Sprintf("https://%s%s", c.apiHost, path)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return err
+	}
+
+	// 🔴 THESE HEADERS MUST BE EXACT
+	req.Header.Set("X-RapidAPI-Key", c.apiKey)
+	req.Header.Set("X-RapidAPI-Host", c.apiHost)
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, _ := io.ReadAll(resp.Body)
+
+	// 🔴 LOG REAL RAPIDAPI ERROR
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf(
+			"rapidapi error: status=%d body=%s",
+			resp.StatusCode,
+			string(bodyBytes),
+		)
+	}
+
+	return json.Unmarshal(bodyBytes, out)
+}
+
+## FILE: backend\internal\stockapi\search.go
+--------------------------------------------------------------------------------
+package stockapi
+
+func (c *RapidApiClient) SearchIndustry(query string) ([]Industry, error) {
+	var resp struct {
+		Data []Industry `json:"data"`
+	}
+
+	err := c.doRequest("/industry_search?query="+query, &resp)
+	return resp.Data, err
+}
+
+func (c *RapidApiClient) SearchMutualFund(query string) ([]MutualFund, error) {
+	var resp struct {
+		Data []MutualFund `json:"data"`
+	}
+
+	err := c.doRequest("/mutual_fund_search?query="+query, &resp)
+	return resp.Data, err
+}
+
+## FILE: backend\pkg\utils\errors.go
+--------------------------------------------------------------------------------
+package utils
+
+import "errors"
+
+var ErrInvalidSymbol = errors.New("invalid stock symbol")
+
+## FILE: backend\pkg\utils\hash.go
+--------------------------------------------------------------------------------
+package utils
+
+## FILE: backend\pkg\utils\jwt.go
+--------------------------------------------------------------------------------
+package utils
+
+import (
+	"errors"
+	"os"
+	"time"
+
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
+)
+
+type Claims struct {
+	UserID  uuid.UUID `json:"user_id"`
+	Email   string    `json:"email"`
+	IsAdmin bool      `json:"is_admin"`
+	jwt.RegisteredClaims
+}
+
+// GenerateToken creates a signed JWT
+func GenerateToken(
+	userID uuid.UUID,
+	email string,
+	isAdmin bool,
+) (string, error) {
+
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		return "", errors.New("JWT_SECRET not set")
+	}
+
+	claims := Claims{
+		UserID:  userID,
+		Email:   email,
+		IsAdmin: isAdmin,
+		RegisteredClaims: jwt.RegisteredClaims{
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	return token.SignedString([]byte(secret))
+}
+
+// ValidateToken validates JWT and returns claims
+func ValidateToken(tokenStr string) (*Claims, error) {
+
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		return nil, errors.New("JWT_SECRET not set")
+	}
+
+	token, err := jwt.ParseWithClaims(
+		tokenStr,
+		&Claims{},
+		func(t *jwt.Token) (interface{}, error) {
+			return []byte(secret), nil
+		},
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	claims, ok := token.Claims.(*Claims)
+	if !ok || !token.Valid {
+		return nil, errors.New("invalid token")
+	}
+
+	return claims, nil
+}
+
+## FILE: backend\pkg\utils\validator.go
+--------------------------------------------------------------------------------
+package utils
+
+## FILE: backend\scripts\Makefile
+--------------------------------------------------------------------------------
+
+
+## FILE: backend\tests\.gitignore
+--------------------------------------------------------------------------------
+.env
+
+## FILE: backend\tests\snippets\login.html
+--------------------------------------------------------------------------------
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Google Login Test</title>
+
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+  </head>
+
+  <body>
+    <h2>Login with Google</h2>
+
+    <div
+      id="g_id_onload"
+      data-client_id="230330457774-bpd729119de1oml3udlv7nehj3n7gcmj.apps.googleusercontent.com"
+      data-callback="handleGoogleLogin">
+    </div>
+
+    <div class="g_id_signin"></div>
+
+    <pre id="output"></pre>
+
+    <script>
+      function handleGoogleLogin(response) {
+        const idToken = response.credential; // 🔥 REAL ID TOKEN
+
+        document.getElementById("output").innerText =
+          "ID TOKEN (copy if needed):\n\n" + idToken;
+
+        // send token to backend
+        fetch("http://localhost:8080/auth/google", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ id_token: idToken })
+        })
+        .then(res => res.json())
+        .then(data => {
+          console.log("Backend response:", data);
+        })
+        .catch(err => console.error(err));
+      }
+    </script>
+  </body>
+</html>
+
+## FILE: backend\tests\snippets\yfin.go
+--------------------------------------------------------------------------------
+package snippets
+
