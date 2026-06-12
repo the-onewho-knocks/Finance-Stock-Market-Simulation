@@ -19,7 +19,7 @@ func NewAdminService(adminRepo interfaces.AdminRepository) *AdminService {
 	}
 }
 
-//read functions
+// read functions
 func (s *AdminService) GetAllUsers(
 	ctx context.Context,
 ) ([]models.User, error) {
@@ -33,8 +33,8 @@ func (s *AdminService) GetUserPortfolio(
 	return s.adminRepo.GetUserPortfolio(userID)
 }
 
-//delete a user account(admin-only prevliage)
-//Admin deletes are dangerous
+// delete a user account(admin-only prevliage)
+// Admin deletes are dangerous
 func (s *AdminService) DeleteUser(
 	ctx context.Context,
 	userID uuid.UUID,
