@@ -33,6 +33,7 @@ class SECClient:
         data = r.json()
         hits_list = data.get("hits", {}).get("hits", [])
         return [h.get("_source", {}) for h in hits_list[:hits]]
+    
 
     async def get_filing_document(self, url: str) -> str:
         async with httpx.AsyncClient(timeout=30, headers=self.HEADERS) as c:

@@ -7,6 +7,15 @@ class SECTool:
     def __init__(self)->None:
         self._client = SECClient()
 
+    """
+    High-level wrapper around SECClient.
+
+        Responsibilities:
+        1. Fetch SEC filings
+        2. Fetch filing documents
+        3. Handle provider failures gracefully
+    """
+
     async def get_filings(
             self,
             symbol:str,
@@ -24,6 +33,7 @@ class SECTool:
                 "total": len(filings),
                 "source": "sec",
             }
+        
         except ProviderError as exc:
             logger.warning(f"Filings fetch failed for {symbol}: {exc}")
             return {
