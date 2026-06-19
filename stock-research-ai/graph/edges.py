@@ -1,0 +1,17 @@
+from core.constants import (
+    NODE_NEWS,
+    NODE_FINANCIAL,
+    NODE_MARKET,
+    NODE_SEC,
+    NODE_MEMORY,
+    NODE_AGGREGATE,
+)
+
+ALL_NODES = [
+    NODE_NEWS,
+    NODE_FINANCIAL,
+    NODE_MARKET,
+    NODE_SEC,
+    NODE_MEMORY,
+    NODE_AGGREGATE,
+]
