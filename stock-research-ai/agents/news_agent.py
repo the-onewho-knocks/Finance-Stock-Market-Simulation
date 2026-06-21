@@ -29,7 +29,7 @@ class NewsAgent:
                 "type": "news",
                 "title": a.get("headline", ""),
                 "url": a.get("url", ""),
-                "published_at": a.get("datetime", ""),
+                "published_at": str(a.get("datetime") or ""),
             }
             for a in articles[:5]
             if a.get("headline")

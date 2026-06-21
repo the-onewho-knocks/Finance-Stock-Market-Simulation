@@ -197,3 +197,194 @@ During task with name 'financial_agent' and id 'edbe0650-c97b-5544-973f-438858f7
 TypeError: MarketTool.get_market_data() missing 1 required positional argument: 'symbol'
 During task with name 'market_agent' and id 'fff1c38a-85e7-6411-84fc-c2214fa8a37e'
 
+2026-06-21 11:38:09.382 | INFO     | services.research_service:run_research:21 - Research started: d39ee647-72ba-4130-82fd-14754665d873 for AAPL
+2026-06-21 11:38:24.382 | ERROR    | services.research_service:run_research:32 - Traceback (most recent call last):
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\services\research_service.py", line 24, in run_research
+    result = await run_research_workflow(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\graph\workflow.py", line 60, in run_research_workflow
+    result = await _compiled.ainvoke(initial_state)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\langgraph\pregel\main.py", line 4105, in ainvoke
+    async for chunk in self.astream(
+    ...<30 lines>...
+            chunks.append(chunk)
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\langgraph\pregel\main.py", line 3455, in astream
+    async for _ in runner.atick(
+    ...<16 lines>...
+            yield o
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\langgraph\pregel\_runner.py", line 396, in atick
+    await arun_with_retry(
+    ...<15 lines>...
+    )
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\langgraph\pregel\_retry.py", line 744, in arun_with_retry
+    return await task.proc.ainvoke(task.input, config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\langgraph\_internal\_runnable.py", line 733, in ainvoke
+    input = await asyncio.create_task(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        step.ainvoke(input, config, **kwargs), context=context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\langgraph\_internal\_runnable.py", line 501, in ainvoke
+    ret = await self.afunc(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\graph\nodes.py", line 46, in sec_node
+    output = await _sec.run(symbol)
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\agents\sec_agent.py", line 8, in run
+    raw = await self._tool.get_filings(symbol, form_type="10-k", hits=3)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\tools\sec_tool.py", line 26, in get_filings
+    filings = await self._client.search_fillings(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'SECClient' object has no attribute 'search_fillings'. Did you mean: 'search_filings'?
+During task with name 'sec_agent' and id 'd6aca09a-491d-f535-3966-fda6ead950b4'
+
+2026-06-21 11:40:50.269 | INFO     | services.research_service:run_research:21 - Research started: 9933f4d8-c7da-4a06-bbdf-024cea32d53a for AAPL
+2026-06-21 11:44:00.133 | INFO     | services.research_service:run_research:21 - Research started: fc701031-88c6-4e8e-a94f-3d215702ee92 for AAPL
+2026-06-21 11:44:20.346 | ERROR    | services.research_service:run_research:32 - Traceback (most recent call last):
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\httpx\_transports\default.py", line 101, in map_httpcore_exceptions
+    yield
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\httpx\_transports\default.py", line 394, in handle_async_request
+    resp = await self._pool.handle_async_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\httpcore\_async\connection_pool.py", line 256, in handle_async_request
+    raise exc from None
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\httpcore\_async\connection_pool.py", line 236, in handle_async_request
+    response = await connection.handle_async_request(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        pool_request.request
+        ^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\httpcore\_async\connection.py", line 101, in handle_async_request
+    raise exc
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\httpcore\_async\connection.py", line 78, in handle_async_request
+    stream = await self._connect(request)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\httpcore\_async\connection.py", line 124, in _connect
+    stream = await self._network_backend.connect_tcp(**kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\httpcore\_backends\auto.py", line 31, in connect_tcp
+    return await self._backend.connect_tcp(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+    )
+    ^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\httpcore\_backends\anyio.py", line 113, in connect_tcp
+    with map_exceptions(exc_map):
+         ~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Program Files\Python313\Lib\contextlib.py", line 162, in __exit__
+    self.gen.throw(value)
+    ~~~~~~~~~~~~~~^^^^^^^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\httpcore\_exceptions.py", line 14, in map_exceptions
+    raise to_exc(exc) from exc
+httpcore.ConnectError: [Errno 11001] getaddrinfo failed
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\services\research_service.py", line 24, in run_research
+    result = await run_research_workflow(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\graph\workflow.py", line 60, in run_research_workflow
+    result = await _compiled.ainvoke(initial_state)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\langgraph\pregel\main.py", line 4105, in ainvoke
+    async for chunk in self.astream(
+    ...<30 lines>...
+            chunks.append(chunk)
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\langgraph\pregel\main.py", line 3455, in astream
+    async for _ in runner.atick(
+    ...<16 lines>...
+            yield o
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\langgraph\pregel\_runner.py", line 396, in atick
+    await arun_with_retry(
+    ...<15 lines>...
+    )
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\langgraph\pregel\_retry.py", line 744, in arun_with_retry
+    return await task.proc.ainvoke(task.input, config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\langgraph\_internal\_runnable.py", line 733, in ainvoke
+    input = await asyncio.create_task(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        step.ainvoke(input, config, **kwargs), context=context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\langgraph\_internal\_runnable.py", line 501, in ainvoke
+    ret = await self.afunc(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\graph\nodes.py", line 46, in sec_node
+    output = await _sec.run(symbol)
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\agents\sec_agent.py", line 8, in run
+    raw = await self._tool.get_filings(symbol, form_type="10-K", hits=3)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\tools\sec_tool.py", line 18, in get_filings
+    filings = await self._client.search_filings(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\providers\finance\sec_client.py", line 30, in search_filings
+    r = await c.get(BASE, params=params)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\httpx\_client.py", line 1768, in get
+    return await self.request(
+           ^^^^^^^^^^^^^^^^^^^
+    ...<9 lines>...
+    )
+    ^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\httpx\_client.py", line 1540, in request
+    return await self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\httpx\_client.py", line 1629, in send
+    response = await self._send_handling_auth(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\httpx\_client.py", line 1657, in _send_handling_auth
+    response = await self._send_handling_redirects(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\httpx\_client.py", line 1694, in _send_handling_redirects
+    response = await self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\httpx\_client.py", line 1730, in _send_single_request
+    response = await transport.handle_async_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\httpx\_transports\default.py", line 393, in handle_async_request
+    with map_httpcore_exceptions():
+         ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Program Files\Python313\Lib\contextlib.py", line 162, in __exit__
+    self.gen.throw(value)
+    ~~~~~~~~~~~~~~^^^^^^^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\httpx\_transports\default.py", line 118, in map_httpcore_exceptions
+    raise mapped_exc(message) from exc
+httpx.ConnectError: [Errno 11001] getaddrinfo failed
+During task with name 'sec_agent' and id 'a176a1ac-0579-6e2b-fb74-5c5bb249b7d2'
+
+2026-06-21 11:50:37.631 | INFO     | services.research_service:run_research:21 - Research started: 7dedfeab-be24-4c65-9ace-43e5ddc5af5b for AAPL
+2026-06-21 11:50:52.023 | WARNING  | tools.sec_tool:get_filings:31 - SEC filings fetch failed for AAPL: [Errno 11001] getaddrinfo failed
+2026-06-21 11:50:53.974 | WARNING  | services.research_service:_persist:110 - Failed to persist research run: connection to server at "localhost" (::1), port 5432 failed: FATAL:  password authentication failed for user "postgres"
+
+2026-06-21 12:05:25.051 | INFO     | services.research_service:run_research:21 - Research started: b6f399bb-e12b-40d8-9f43-59e0c00fa21c for AAPL
+2026-06-21 12:05:43.244 | WARNING  | tools.sec_tool:get_filings:31 - SEC filings fetch failed for AAPL: [Errno 11001] getaddrinfo failed
+2026-06-21 12:07:14.250 | INFO     | services.research_service:run_research:21 - Research started: 59c79dcd-6f06-43a7-a81b-eed925e35f69 for GE
+2026-06-21 12:07:28.077 | WARNING  | tools.sec_tool:get_filings:31 - SEC filings fetch failed for GE: [Errno 11001] getaddrinfo failed
+2026-06-21 12:09:27.967 | INFO     | services.research_service:run_research:21 - Research started: b729b570-8f83-4779-9515-dc3b2071438f for GE
+2026-06-21 12:10:57.886 | INFO     | services.research_service:run_research:21 - Research started: 4f6efac1-05df-45a0-b591-ba64478091b3 for GE
+2026-06-21 12:14:01.790 | INFO     | services.research_service:run_research:21 - Research started: 52041c65-fd7a-480e-9196-a7ded086b1b0 for GE
+2026-06-21 12:24:33.157 | INFO     | services.research_service:run_research:21 - Research started: 0f854fde-fdfa-4d7b-bfbc-c5d7fa534230 for NVDA

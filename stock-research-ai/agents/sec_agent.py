@@ -5,7 +5,7 @@ class SECAgent:
         self._tool = SECTool()
 
     async def run(self, symbol: str):
-        raw = await self._tool.get_filings(symbol, form_type="10-k", hits=3)
+        raw = await self._tool.get_filings(symbol, form_type="10-K", hits=3)
         filings = raw.get("filings", [])
         
         # Consistent return schema for early exit
@@ -13,9 +13,10 @@ class SECAgent:
             return {
                 "sec_summary": f"No SEC filings found for {symbol}",
                 "sources": [],
-                "risk_factors": [],  
+                "risk_factors": [],
                 "filing_highlights": "",
-                "error": raw.get("error")
+                "source": "sec",
+                "error": raw.get("error"),
             }
         
         latest = filings[0]
@@ -25,7 +26,9 @@ class SECAgent:
         sources = [
             {
                 "type": "sec",
-                "title": f.get("displayName", ""), 
+                "title": ("; ".join(f["displayNames"]) if isinstance(f.get("displayNames"), list)
+                else f.get("displayNames") or f.get("display_name") or f.get("summary") or ""
+),
                 "url": f.get("url", None),    
             }
             for f in filings[:3]

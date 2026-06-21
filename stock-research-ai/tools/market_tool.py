@@ -21,7 +21,7 @@ class MarketTool:
             
 
         try:
-            profile = await self._finnhub_client.get_profile(symbol)
+            profile = await self._finnhub_client.get_company_profile(symbol)
             result["profile"] = profile
         except ProviderError as exc:
             logger.warning(f"Profile fetch failed for {symbol}: {exc}")

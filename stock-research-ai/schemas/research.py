@@ -9,7 +9,6 @@ class Source(BaseModel):
     url: Optional[str] = None
     published_at: Optional[str] = None
 
-
 class ResearchRequest(BaseModel):
     symbol: str = Field(..., description="Stock ticker symbol, e.g. AAPL")
     user_id: Optional[str] = None
