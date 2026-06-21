@@ -152,3 +152,48 @@ Traceback (most recent call last):
 tenacity.RetryError: RetryError[<Future at 0x1e7db6ff8a0 state=finished raised ProviderError>]
 During task with name 'financial_agent' and id 'edbe0650-c97b-5544-973f-438858f74967'
 
+2026-06-21 11:30:03.622 | INFO     | services.research_service:run_research:21 - Research started: b853e15d-703f-42b1-9150-c7bdce7a2b9d for AAPL
+2026-06-21 11:30:15.237 | ERROR    | services.research_service:run_research:32 - Traceback (most recent call last):
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\services\research_service.py", line 24, in run_research
+    result = await run_research_workflow(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\graph\workflow.py", line 60, in run_research_workflow
+    result = await _compiled.ainvoke(initial_state)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\langgraph\pregel\main.py", line 4105, in ainvoke
+    async for chunk in self.astream(
+    ...<30 lines>...
+            chunks.append(chunk)
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\langgraph\pregel\main.py", line 3455, in astream
+    async for _ in runner.atick(
+    ...<16 lines>...
+            yield o
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\langgraph\pregel\_runner.py", line 396, in atick
+    await arun_with_retry(
+    ...<15 lines>...
+    )
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\langgraph\pregel\_retry.py", line 744, in arun_with_retry
+    return await task.proc.ainvoke(task.input, config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\langgraph\_internal\_runnable.py", line 733, in ainvoke
+    input = await asyncio.create_task(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        step.ainvoke(input, config, **kwargs), context=context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\venv\Lib\site-packages\langgraph\_internal\_runnable.py", line 501, in ainvoke
+    ret = await self.afunc(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\graph\nodes.py", line 37, in market_node
+    output = await _market.run(symbol)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\A-Projects-gng\Finance-Simulation\stock-research-ai\agents\market_agent.py", line 8, in run
+    raw = await self._tool.get_market_data(symbol)
+                ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^
+TypeError: MarketTool.get_market_data() missing 1 required positional argument: 'symbol'
+During task with name 'market_agent' and id 'fff1c38a-85e7-6411-84fc-c2214fa8a37e'
+
