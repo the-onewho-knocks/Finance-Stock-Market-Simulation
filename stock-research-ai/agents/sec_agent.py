@@ -286,10 +286,7 @@ class SECAgent:
         # Try to find JSON object
         match = re.search(r"\{.*\}", cleaned, re.DOTALL)
         if match:
-            try:
-                return json.loads(match.group(0))
-            except json.JSONDecodeError:
-                pass
+            return json.loads(match.group(0))
         # Fallback
         return self._deterministic_insights(risk_factors, mda_text, insider_trades, material_events, key_metrics)
 

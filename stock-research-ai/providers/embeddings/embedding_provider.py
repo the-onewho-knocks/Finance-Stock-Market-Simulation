@@ -1,16 +1,21 @@
-from llama_index.embeddings.gemini import GeminiEmbedding
+from google import genai
 from core.config import settings
-from loguru import logger
 
 class EmbeddingProvider:
     def __init__(self):
-        self._model = GeminiEmbedding(
-            model_name="models/text-embedding-004",
-            api_key=settings.gemini_api_key,
-        )
+        self._client = genai.Client(api_key=settings.gemini_api_key)
+        self._model = "text-embedding-004"
 
     async def embed_text(self, text: str) -> list[float]:
-        return await self._model.aget_text_embedding(text)
+        result = self._client.models.embed_content(
+            model=self._model,
+            contents=text,
+        )
+        return result.embeddings[0].values
 
     async def embed_batch(self, texts: list[str]) -> list[list[float]]:
-        return await self._model.aget_text_embedding_batch(texts)
+        result = self._client.models.embed_content(
+            model=self._model,
+            contents=texts,
+        )
+        return [e.values for e in result.embeddings]
