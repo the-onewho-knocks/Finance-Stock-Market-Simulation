@@ -1,6 +1,8 @@
 import httpx
 from tenacity import retry, stop_after_attempt, wait_exponential
 
+from core.cache import cache_get, cache_set
+
 from core.config import settings
 from core.exceptions import ProviderError
 
@@ -17,11 +19,10 @@ class FMPClient:
             params.update(extra)
         return params
 
-    @retry(
-        stop=stop_after_attempt(5),
-        wait=wait_exponential(min=1, max=8),
-    )
     async def get_income_statement(self, symbol: str, limit: int = 4) -> list[dict]:
+        cached = await cache_get("fmp", f"income:{symbol.upper()}")
+        if cached:
+            return cached
         async with httpx.AsyncClient(timeout=15) as c:
             r = await c.get(
                 f"{BASE}/income-statement",
@@ -29,13 +30,14 @@ class FMPClient:
             )
         if r.status_code != 200:
             raise ProviderError("fmp", f"income statement failed: {r.text}")
-        return r.json()
+        data = r.json()
+        await cache_set("fmp", f"income:{symbol.upper()}", data, ttl=3600)
+        return data
 
-    @retry(
-        stop=stop_after_attempt(5),
-        wait=wait_exponential(min=1, max=8),
-    )
     async def get_balance_sheet(self, symbol: str, limit: int = 4) -> list[dict]:
+        cached = await cache_get("fmp", f"balance:{symbol.upper()}")
+        if cached:
+            return cached
         async with httpx.AsyncClient(timeout=15) as c:
             r = await c.get(
                 f"{BASE}/balance-sheet-statement",
@@ -43,13 +45,14 @@ class FMPClient:
             )
         if r.status_code != 200:
             raise ProviderError("fmp", f"balance sheet failed: {r.text}")
-        return r.json()
+        data = r.json()
+        await cache_set("fmp", f"balance:{symbol.upper()}", data, ttl=3600)
+        return data
 
-    @retry(
-        stop=stop_after_attempt(5),
-        wait=wait_exponential(min=1, max=8),
-    )
     async def get_ratios(self, symbol: str, limit: int = 1) -> list[dict]:
+        cached = await cache_get("fmp", f"ratios:{symbol.upper()}")
+        if cached:
+            return cached
         async with httpx.AsyncClient(timeout=15) as c:
             r = await c.get(
                 f"{BASE}/ratios",
@@ -57,7 +60,9 @@ class FMPClient:
             )
         if r.status_code != 200:
             raise ProviderError("fmp", f"ratios failed: {r.text}")
-        return r.json()
+        data = r.json()
+        await cache_set("fmp", f"ratios:{symbol.upper()}", data, ttl=3600)
+        return data
 
     @retry(
         stop=stop_after_attempt(5),

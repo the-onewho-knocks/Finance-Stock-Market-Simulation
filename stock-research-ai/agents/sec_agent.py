@@ -90,7 +90,7 @@ class SECAgent:
             f"- red_flags: list of warning signs\n"
             f"- opportunities: list of opportunities\n"
             f"- key_metrics: dict of financial metrics\n\n"
-            f"Risk factors: {risk_factors}\n\n"
+            f"Risk factors: {str(risk_factors)[:3000]}\n\n"
             f"MD&A: {mda_text[:1500]}\n\n"
             f"Insider trades: {insider_trades}\n\n"
             f"Events: {material_events}\n\n"

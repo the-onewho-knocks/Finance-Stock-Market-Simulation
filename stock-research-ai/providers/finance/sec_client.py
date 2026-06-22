@@ -4,16 +4,20 @@ import httpx
 from loguru import logger
 from tenacity import retry, stop_after_attempt, wait_exponential
 
+from core.cache import cache_get, cache_set
+from core.config import settings
+
 from core.config import settings
 from core.exceptions import ProviderError
 
+SEC_BASE = "https://www.sec.gov"
 BASE = "https://efts.sec.gov/LATEST/search-index"
 CIK_URL = "https://www.sec.gov/files/company_tickers.json"
 SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik}.json"
 IX_VIEWER = "https://www.sec.gov/ix?doc=/Archives/edgar/data/{cik}/{accession}/{primary_doc}"
 ARCHIVES = "https://www.sec.gov/Archives/edgar/data/{cik}/{accession}/{primary_doc}"
 
-_CIK_CACHE: dict[str, str] = {}
+# _CIK_CACHE: dict[str, str] = {}
 
 
 class SECClient:
@@ -49,55 +53,68 @@ class SECClient:
         hits_list = data.get("hits", {}).get("hits", [])
         return [h.get("_source", {}) for h in hits_list[:hits]]
 
-    async def cik_from_ticker(self, symbol: str) -> str | None:
-        symbol = symbol.upper()
-        if symbol in _CIK_CACHE:
-            return _CIK_CACHE[symbol]
+    async def cik_from_ticker(self, ticker: str) -> str | None:
+        ticker = ticker.upper()
+
+        cached = await cache_get("sec", f"cik:{ticker}")
+        if cached:
+            return cached
 
         try:
-            async with httpx.AsyncClient(timeout=15, headers=self.HEADERS , follow_redirects=True) as c:
+            async with httpx.AsyncClient(timeout=20, headers=self.HEADERS, follow_redirects=True) as c:
                 r = await c.get(CIK_URL)
-
-            if r.status_code != 200:
-                logger.warning(f"CIK lookup failed: {r.status_code}")
-                return None
-
-            data = r.json()
-            for item in data.values():
-                ticker = item.get("ticker", "").upper()
-                if ticker == symbol:
-                    cik_str = str(item["cik_str"]).zfill(10)
-                    _CIK_CACHE[symbol] = cik_str
-                    return cik_str
-
-            logger.warning(f"No CIK found for symbol '{symbol}'")
-            return None
+                r.raise_for_status()
+                data = r.json()
         except Exception as exc:
-            logger.warning(f"CIK lookup exception for {symbol}: {exc}")
+            logger.warning(f"CIK lookup exception for {ticker}: {exc}")
             return None
-        
+
+        for entry in data.values():
+            if entry.get("ticker", "").upper() == ticker:
+                cik = str(entry["cik_str"]).zfill(10)
+                await cache_set("sec", f"cik:{ticker}", cik, ttl=86400)
+                return cik
+
+        return None
         
     @retry(stop=stop_after_attempt(5), wait=wait_exponential(min=1, max=8))
     async def get_submissions(self, cik: str) -> dict:
+        cached = await cache_get("sec", f"submissions:{cik}")
+        if cached:
+            return cached
+
         url = SUBMISSIONS_URL.format(cik=cik)
-        async with httpx.AsyncClient(timeout=20, headers=self.HEADERS , follow_redirects = True) as c:
-            r = await c.get(url)
+        try:
+            async with httpx.AsyncClient(timeout=30, headers=self.HEADERS, follow_redirects=True) as c:
+                r = await c.get(url)
+                r.raise_for_status()
+                data = r.json()
+        except Exception as exc:
+            logger.warning(f"Submissions fetch failed for CIK {cik}: {exc}")
+            raise
 
-        if r.status_code != 200:
-            raise ProviderError("sec", f"submissions failed: {r.status_code}")
-
-        return r.json()
+        await cache_set("sec", f"submissions:{cik}", data, ttl=3600)
+        return data
     
     @retry(stop=stop_after_attempt(5), wait=wait_exponential(min=1, max=8))
     async def get_filing_html(self, cik: str, accession: str, primary_doc: str) -> str:
-        url = ARCHIVES.format(cik=cik, accession=accession, primary_doc=primary_doc)
-        async with httpx.AsyncClient(timeout=30, headers=self.HEADERS , follow_redirects=True) as c:
-            r = await c.get(url)
+        cache_key = f"html:{cik}:{accession}:{primary_doc}"
+        cached = await cache_get("sec", cache_key)
+        if cached:
+            return cached
 
-        if r.status_code != 200:
-            raise ProviderError("sec", f"document fetch failed: {r.status_code}")
+        url = f"{SEC_BASE}/Archives/edgar/data/{int(cik)}/{accession}/{primary_doc}"
+        try:
+            async with httpx.AsyncClient(timeout=30, headers=self.HEADERS, follow_redirects=True) as c:
+                r = await c.get(url)
+                r.raise_for_status()
+                text = r.text
+        except Exception as exc:
+            logger.warning(f"Filing HTML fetch failed: {exc}")
+            raise
 
-        return r.text
+        await cache_set("sec", cache_key, text, ttl=86400)
+        return text
 
     @retry(stop=stop_after_attempt(5), wait=wait_exponential(min=1, max=8))
     async def get_filing_document(self, url: str) -> str:
