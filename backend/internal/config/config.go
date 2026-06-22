@@ -18,6 +18,8 @@ type Config struct {
 
 	RapidAPIKey  string
 	RapidAPIHost string
+	StockResearchAIURL string  
+
 }
 
 func LoadConfig() *Config {
@@ -40,6 +42,7 @@ func LoadConfig() *Config {
 
 	cfg.RapidAPIKey = getEnv("RAPIDAPI_KEY", "")
 	cfg.RapidAPIHost = getEnv("RAPIDAPI_HOST", "")
+	cfg.StockResearchAIURL = getEnv("STOCK_RESEARCH_AI_URL", "http://localhost:8000")
 
 	return cfg
 }

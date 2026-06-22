@@ -99,6 +99,9 @@ func main() {
 		expenseService,
 		dashboardCache,
 	)
+
+	researchHandler := handler.NewResearchHandler(cfg.StockResearchAIURL)
+	
 	h := &routes.Handlers{
 		Auth:           handler.NewAuthHandler(authService),
 		User:           handler.NewUserHandler(userService),
@@ -111,6 +114,7 @@ func main() {
 		Market:         handler.NewMarketHandler(marketService),
 		Heatmap:        handler.NewHeatmapHandler(heatmapService),
 		Dashboard:      handler.NewDashboardHandler(dashboardService),
+		Research: researchHandler,
 	}
 
 	r := chi.NewRouter()

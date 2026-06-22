@@ -878,3 +878,9 @@ httpx.ConnectError: [Errno 11001] getaddrinfo failed
 2026-06-22 13:37:49.163 | WARNING  | providers.finance.sec_client:get_submissions:93 - Submissions fetch failed for CIK 0001045810: [Errno 11001] getaddrinfo failed
 2026-06-22 13:37:53.468 | INFO     | vectorstore.qdrant_client:get_qdrant_client:15 - Qdrant client initialised → http://localhost:6333
 2026-06-22 13:37:54.893 | INFO     | rag.ingestion.embedding_pipeline:embed_and_index:56 - Indexed 1 chunks for NVDA in 'sec_filings'
+2026-06-22 13:52:35.712 | INFO     | services.research_service:run_research:21 - Research started: 369c4244-6c11-4fac-b69d-f56166ef3674 for NVDA
+2026-06-22 13:52:44.889 | WARNING  | providers.finance.sec_client:cik_from_ticker:69 - CIK lookup exception for NVDA: [Errno 11001] getaddrinfo failed
+2026-06-22 13:52:44.892 | WARNING  | tools.sec_tool:get_all_filings:54 - CIK lookup failed for NVDA, falling back to search
+2026-06-22 13:53:23.054 | INFO     | services.research_service:run_research:21 - Research started: 59b272bf-0e98-4a4c-8004-4691601560f7 for NVDA
+2026-06-22 13:53:32.547 | WARNING  | providers.finance.sec_client:get_submissions:93 - Submissions fetch failed for CIK 0001045810: [Errno 11001] getaddrinfo failed
+2026-06-22 13:53:37.581 | INFO     | rag.ingestion.embedding_pipeline:embed_and_index:56 - Indexed 1 chunks for NVDA in 'sec_filings'
