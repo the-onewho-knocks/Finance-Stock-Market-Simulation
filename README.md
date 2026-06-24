@@ -32,6 +32,7 @@ The platform simulates real-world portfolio management, buy/sell transactions, e
 
 ## Architecture Diagram:-
 ### Below is a high-level overview of the system architectur:
+<!-- me and my jasmine created this -->
 ```mermaid
 graph TB
     Client["Client Layer<br/>Web / Mobile Client"]
