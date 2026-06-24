@@ -1,10 +1,7 @@
 # HEXAFINANCE
 
 A production-grade financial simulation platform: a **Go** backend built on Clean/Hexagonal Architecture, paired with an independent **Python (FastAPI + LangGraph)** multi-agent service that performs autonomous, LLM-driven equity research with a fully deterministic fallback when no LLM is available.
-
 The platform simulates real-world portfolio management, buy/sell transactions, expense tracking, live market data ingestion, technical indicators, net worth analytics, and AI-generated stock research reports backed by SEC filings, financial statements, news, and historical memory.
-
-It isn't a CRUD demo with extra steps — it's built the way a real trading/fintech backend would be: monetary math uses fixed-point decimals (never floats), portfolio cost-basis is recomputed atomically inside PostgreSQL, net worth recalculation runs asynchronously so trade requests don't block on it, and the AI research engine degrades gracefully to rule-based analysis if every LLM provider is unavailable.
 
 ## The project demonstrates:-
 1) Clean Hexagonal Architecture with strict domain separation (handlers → services → repositories, all behind interfaces)
@@ -468,7 +465,10 @@ GET /users/{userID}/expenses
 ```
 
 ### 7. Net Worth
-POST /users/{userID}/networth/recalculate &nbsp;·&nbsp; GET /users/{userID}/networth/latest &nbsp;·&nbsp; GET /users/{userID}/networth/history &nbsp;·&nbsp; GET /users/{userID}/networth/breakdown
+POST /users/{userID}/networth/recalculate &nbsp;·&nbsp; 
+GET /users/{userID}/networth/latest &nbsp;·&nbsp; 
+GET /users/{userID}/networth/history &nbsp;·&nbsp; 
+GET /users/{userID}/networth/breakdown
 
 ```json
 GET /users/{userID}/networth/breakdown
@@ -578,7 +578,7 @@ cd backend
 go mod tidy
 go run cmd/main.go
 ```
-Set the following environment variables (see `backend/cmd/.env`):
+Set the following environment variables (`backend/cmd/.env`):
 `APP_PORT`, `DATABASE_URL`, `GOOGLE_CLIENT_ID`, `JWT_SECRET`, `REDIS_HOST`, `REDIS_PASSWORD`, `REDIS_DB`, `RAPIDAPI_KEY`, `RAPIDAPI_HOST`, `INDIAN_RAPIDAPI_KEY`, `INDIAN_RAPIDAPI_HOST`, `STOCK_RESEARCH_AI_URL`
 
 ### Run the AI Research Service (Python)
@@ -587,7 +587,7 @@ cd stock-research-ai
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
-Set the following environment variables (see `stock-research-ai/.env`):
+Set the following environment variables (`stock-research-ai/.env`):
 `GEMINI_API_KEY`, `GROQ_API_KEY`, `FINNHUB_API_KEY`, `FMP_API_KEY`, `POLYGON_API_KEY`, `SEC_API_KEY`, `XTRACE_API_KEY`, `XTRACE_ORG_ID`, `QDRANT_URL`, `QDRANT_API_KEY`, `DATABASE_URL`, `REDIS_URL`
 
 > Both services connect independently to PostgreSQL and Redis; point `STOCK_RESEARCH_AI_URL` (Go side) at wherever the FastAPI service is running so `/research` requests proxy correctly. Note: neither `GEMINI_API_KEY` nor `GROQ_API_KEY` is strictly required to run research requests — omit both and the SEC and Aggregation agents automatically switch to their deterministic fallback logic.
