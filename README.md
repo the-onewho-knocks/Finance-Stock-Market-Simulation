@@ -60,7 +60,7 @@ graph TB
     
     LangGraphAgent["LangGraph Research Agent<br/>State Management<br/>Agentic Workflow<br/>Tool Orchestration"]
     
-    LLM["LLM Model<br/>Claude / GPT-4<br/>Reasoning Engine<br/>Query Planning"]
+    LLM["LLM Model<br/>Claude / GPT-4<br/>/ Gemini 4.0 flash <br/>Reasoning Engine<br/>Query Planning"]
     
     ResearchTools["Research Tools<br/>SEC Filing Tool<br/>Vector Search Tool<br/>Market Data Tool<br/>Extraction Tool"]
     
