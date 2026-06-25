@@ -31,7 +31,7 @@ The platform simulates real-world portfolio management, buy/sell transactions, e
 - [License](#license)
 
 ## Architecture Diagram:-
-### Below is a high-level system architectur:
+### Below is a high-level system architecture:
 <!-- me and my jasmine created this -->
 ```mermaid
 graph TB
