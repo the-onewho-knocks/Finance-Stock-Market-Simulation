@@ -16,10 +16,9 @@ type Config struct {
 	RedisPassword string
 	RedisDB       int
 
-	RapidAPIKey  string
-	RapidAPIHost string
-	StockResearchAIURL string  
-
+	RapidAPIKey        string
+	RapidAPIHost       string
+	StockResearchAIURL string
 }
 
 func LoadConfig() *Config {
